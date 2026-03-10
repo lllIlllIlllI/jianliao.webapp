@@ -1,0 +1,59 @@
+
+1️⃣ 运行 Web 版本（推荐开发用）
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run serve
+
+然后在浏览器中打开 http://localhost:8080（具体端口见命令输出）
+
+✅ 特点：
+
+支持热重载（修改代码自动刷新）
+开发环境会使用 .env.development 配置
+API 请求代理到 http://127.0.0.1:8888
+2️⃣ 运行 Electron 版本（桌面应用）
+
+
+# 启动 Electron 开发模式
+npm run electron:serve
+
+✅ 特点：
+
+作为桌面应用运行
+支持热重载
+支持原生系统功能
+
+3️⃣ 打包 Electron 应用
+Windows 版本：
+npm run electron:build-win
+
+macOS 版本：
+npm run electron:build-mac
+
+所有平台：
+npm run electron:build
+
+生成的安装包会在 dist_electron/ 目录中
+
+npm run serve	启动 Web 开发服务器（热重载）
+npm run build	构建 Web 生产版本（输出到 dist/）
+npm run build:pages	构建 Cloudflare Pages 版本
+npm run lint	代码检查和格式化
+npm run electron:serve	启动 Electron 开发模式
+npm run electron:build	打包 Electron（所有平台）
+npm run electron:build-win	打包 Windows EXE
+npm run electron:build-mac	打包 macOS DMG
+⚠️ 注意事项
+API 服务器 - 本地开发时需要后端 API 服务运行在 http://127.0.0.1:8888
+
+依赖安装 - 首次运行前确保执行 npm install
+
+Node 版本 - 推荐使用 Node.js 18+ 版本
+
+环境变量 - 项目已配置：
+
+开发: .env.development (http://127.0.0.1:8888)
+生产: .env.production (https://api.your-domain.com)
