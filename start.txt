@@ -61,5 +61,5 @@ Node 版本 - 推荐使用 Node.js 18+ 版本
 
 
 
-docker build -t dididale/jianliao.webapp:v0.3 .
-docker push dididale/jianliao.webapp:v0.3
+docker build -t dididale/jianliao.webapp:v0.6 .
+docker push dididale/jianliao.webapp:v0.6
