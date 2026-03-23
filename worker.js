@@ -8,7 +8,7 @@ export default {
       return new Response(
         JSON.stringify({
           ok: true,
-          worker: "jianliaowebapp2",
+          worker: "jianliao-webapp",
           version: "2026-03-08-1",
           now: new Date().toISOString(),
         }),
