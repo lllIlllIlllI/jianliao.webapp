@@ -1,8 +1,7 @@
-const API_ORIGIN = "https://api.jianliao.net";
-const WS_ORIGIN = "https://jianliao.relaynet.io";
-
 export default {
   async fetch(request, env) {
+    const apiOrigin = env.API_ORIGIN || "https://api.jianliao.net";
+    const wsOrigin = env.WS_ORIGIN || "https://jianliao.relaynet.io";
     const url = new URL(request.url);
     if (url.pathname === "/__worker_ping" || url.pathname === "/__worker__ping") {
       return new Response(
@@ -22,27 +21,28 @@ export default {
       );
     }
     if (url.pathname === "/__upstream_ping" || url.pathname === "/__upstream__ping") {
-      return probeUpstream();
+      return probeUpstream(apiOrigin);
     }
 
     if (url.pathname.startsWith("/api/")) {
-      return proxyApi(request, url);
+      return proxyApi(request, url, apiOrigin);
     }
     if (url.pathname.startsWith("/im")) {
-      return proxyWs(request, url);
+      return proxyWs(request, url, wsOrigin);
     }
 
     return env.ASSETS.fetch(request);
   },
 };
 
-async function proxyApi(request, url) {
-  const targetUrl = new URL(url.pathname + url.search, API_ORIGIN);
+async function proxyApi(request, url, apiOrigin) {
+  const upstreamPath = url.pathname.replace(/^\/api/, "");
+  const targetUrl = new URL(upstreamPath + url.search, apiOrigin);
   const headers = new Headers(request.headers);
 
   headers.set("host", targetUrl.host);
-  headers.set("origin", API_ORIGIN);
-  headers.set("referer", `${API_ORIGIN}/`);
+  headers.set("origin", apiOrigin);
+  headers.set("referer", `${apiOrigin}/`);
 
   const proxyRequest = new Request(targetUrl.toString(), {
     method: request.method,
@@ -70,13 +70,13 @@ async function proxyApi(request, url) {
   }
 }
 
-async function proxyWs(request, url) {
-  const targetUrl = new URL(url.pathname + url.search, WS_ORIGIN);
+async function proxyWs(request, url, wsOrigin) {
+  const targetUrl = new URL(url.pathname + url.search, wsOrigin);
   targetUrl.protocol = targetUrl.protocol === "http:" ? "ws:" : "wss:";
   const headers = new Headers(request.headers);
   headers.set("host", targetUrl.host);
-  headers.set("origin", WS_ORIGIN);
-  headers.set("referer", `${WS_ORIGIN}/`);
+  headers.set("origin", wsOrigin);
+  headers.set("referer", `${wsOrigin}/`);
   const proxyRequest = new Request(targetUrl.toString(), {
     method: request.method,
     headers,
@@ -111,8 +111,8 @@ function jsonError(status, code, details) {
   );
 }
 
-async function probeUpstream() {
-  const targetUrl = `${API_ORIGIN}/api/system/config`;
+async function probeUpstream(apiOrigin) {
+  const targetUrl = `${apiOrigin}/system/config`;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort("probe-timeout"), 3000);
