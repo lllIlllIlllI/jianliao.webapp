@@ -58,3 +58,8 @@ Node 版本 - 推荐使用 Node.js 18+ 版本
 开发: .env.development (http://127.0.0.1:8888)
 生产: .env.production (https://api.your-domain.com)
 
+
+
+
+docker build -t dididale/jianliao.webapp:v0.3 .
+docker push dididale/jianliao.webapp:v0.3
