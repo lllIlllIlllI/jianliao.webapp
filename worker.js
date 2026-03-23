@@ -1,4 +1,4 @@
-const API_ORIGIN = "";
+const API_ORIGIN = "https://api.jianliao.net";
 const WS_ORIGIN = "https://jianliao.relaynet.io";
 
 export default {
