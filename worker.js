@@ -29,7 +29,7 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       return proxyApi(request, url, apiOrigin);
     }
-    if (url.pathname.startsWith("/im")) {
+    if (url.pathname === "/im" || url.pathname.startsWith("/im/")) {
       return proxyWs(request, url, wsOrigin);
     }
 
