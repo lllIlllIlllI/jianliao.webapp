@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /login
+Allow: /register
+Allow: /product
+Allow: /download
+Allow: /about
+Disallow: /home
+Disallow: /password/reset
+Sitemap: https://web.jianliao.net/sitemap.xml
