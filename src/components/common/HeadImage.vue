@@ -1,6 +1,6 @@
 <template>
 	<div class="head-image" @click="showUserInfo($event)" :style="{ cursor: isShowUserInfo ? 'pointer' : null }">
-		<img class="avatar-image" v-show="url" :src="url" :style="avatarImageStyle" loading="lazy" />
+		<img class="avatar-image" v-show="url" :src="url" :style="avatarImageStyle" loading="lazy" referrerpolicy="no-referrer" />
 		<div class="avatar-text" v-show="!url" :style="avatarTextStyle">
 			{{ avaterText }}</div>
 		<div v-show="online" class="online" title="用户当前在线"></div>

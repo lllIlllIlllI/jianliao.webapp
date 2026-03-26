@@ -2,7 +2,7 @@
 	<div class="full-image" v-if="show" :before-close="close" :modal="true">
 		<div class="mask"></div>
 		<div class="image-box">
-			<img :src="url" />
+			<img :src="url" referrerpolicy="no-referrer" />
 		</div>
 		<div class="close" @click="close"><i class="el-icon-close"></i></div>
 	</div>

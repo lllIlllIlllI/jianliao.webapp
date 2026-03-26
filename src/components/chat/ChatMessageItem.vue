@@ -24,14 +24,14 @@
 						<div class="message-image" v-else-if="msgInfo.type == $enums.MESSAGE_TYPE.IMAGE"
 							@click="showFullImageBox()">
 							<div class="image-container" :style="imageStyle">
-								<img class="send-image" :src="contentData.thumbUrl" loading="lazy" />
+								<img class="send-image" :src="contentData.thumbUrl" loading="lazy" referrerpolicy="no-referrer" />
 								<div class="image-overlay">
 									<i class="el-icon-zoom-in"></i>
 								</div>
 							</div>
 						</div>
 						<div class="message-video" v-else-if="msgInfo.type == $enums.MESSAGE_TYPE.VIDEO">
-							<video class="send-video" :style="imageStyle" controls preload="none"
+							<video class="send-video" :style="imageStyle" controls preload="none" referrerpolicy="no-referrer"
 								:poster="contentData.coverUrl" :src="contentData.videoUrl" />
 						</div>
 						<div class="message-file" v-else-if="msgInfo.type == $enums.MESSAGE_TYPE.FILE">
@@ -48,7 +48,7 @@
 							</div>
 						</div>
 						<div class="message-sticker" v-else-if="msgInfo.type == $enums.MESSAGE_TYPE.STICKER">
-							<img :style="stickerStyle" :src="contentData.imageUrl" loading="lazy" />
+							<img :style="stickerStyle" :src="contentData.imageUrl" loading="lazy" referrerpolicy="no-referrer" />
 						</div>
 						<div class="message-voice" v-else-if="msgInfo.type == $enums.MESSAGE_TYPE.AUDIO"
 							@click="onPlayVoice()">
