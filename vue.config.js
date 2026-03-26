@@ -1,7 +1,9 @@
 const path = require('path')
 const fs = require('fs')
-const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'http://127.0.0.1:8888'
-const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'http://127.0.0.1:8878'
+// const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'https://127.0.0.1:8888'
+// const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'http://127.0.0.1:8878'
+const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'https://api.jianliao.net'
+const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'https://ws.jianliao.net'
 
 module.exports = {
 	devServer: {

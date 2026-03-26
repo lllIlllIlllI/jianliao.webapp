@@ -2,6 +2,8 @@ export default {
   async fetch(request, env) {
     const apiOrigin = env.API_ORIGIN || "https://api.jianliao.net";
     const wsOrigin = env.WS_ORIGIN || "https://jianliao.relaynet.io";
+    // const apiOrigin = env.API_ORIGIN || "https://api.jianliao.net";
+    // const wsOrigin = env.WS_ORIGIN || "https://jianliao.relaynet.io";
     const url = new URL(request.url);
     if (url.pathname === "/__worker_ping" || url.pathname === "/__worker__ping") {
       return new Response(
