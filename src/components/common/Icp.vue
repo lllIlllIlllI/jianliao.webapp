@@ -1,11 +1,6 @@
 <template>
 	<div class="icp" v-if="!configStore.electronMode">
-		<div class="link-group">
-			<router-link to="/product">产品</router-link>
-			<router-link to="/download">下载</router-link>
-			<router-link to="/about">关于我们</router-link>
-			<a target="_blank" rel="noopener noreferrer" href="https://www.jianliao.net.cn/">官方客服</a>
-		</div>
+		<a target="_blank" rel="noopener noreferrer" href="https://www.jianliao.net.cn/">官方客服</a>
 	</div>
 </template>
 
@@ -20,13 +15,6 @@
 	margin: 0 auto;
 	width: 100%;
 	color: #5c6b77;
-
-	.link-group {
-		display: inline-flex;
-		gap: 14px;
-		flex-wrap: wrap;
-		justify-content: center;
-	}
 
 	a {
 		color: #1677ff;

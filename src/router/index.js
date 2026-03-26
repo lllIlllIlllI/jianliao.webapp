@@ -7,6 +7,9 @@ import Home from '../view/Home'
 import ProductLanding from '../view/ProductLanding.vue'
 import DownloadLanding from '../view/DownloadLanding.vue'
 import AboutLanding from '../view/AboutLanding.vue'
+import ImSdkLanding from '../view/ImSdkLanding.vue'
+import PrivateImLanding from '../view/PrivateImLanding.vue'
+import ImSolutionLanding from '../view/ImSolutionLanding.vue'
 // 安装路由
 Vue.use(VueRouter);
 
@@ -51,6 +54,45 @@ const router = new VueRouter({
         title: "关于简聊IM - 安全可靠的即时通讯服务",
         description: "了解简聊IM的发展定位、核心能力与产品服务，支持企业与个人高效沟通。",
         keywords: "关于简聊IM,即时通讯服务,企业即时通信软件,聊天平台",
+        robots: "index,follow"
+      }
+    }
+  },
+  {
+    name: "ImSdkLanding",
+    path: '/im-sdk',
+    component: ImSdkLanding,
+    meta: {
+      seo: {
+        title: "IM SDK - 即时通讯SDK与API接口平台 | 简聊IM",
+        description: "简聊IM提供即时通讯SDK、REST API、Webhook能力，支持企业快速集成消息与协同功能。",
+        keywords: "IM SDK,即时通讯SDK,IM API,Webhook,消息推送,企业IM集成",
+        robots: "index,follow"
+      }
+    }
+  },
+  {
+    name: "PrivateImLanding",
+    path: '/private-im',
+    component: PrivateImLanding,
+    meta: {
+      seo: {
+        title: "私有化IM部署 - 企业即时通讯私有部署方案 | 简聊IM",
+        description: "支持私有化部署、专网接入、权限审计与数据可控，适合对安全与合规要求较高的组织。",
+        keywords: "私有化IM,企业即时通讯私有化部署,内网IM,专网通讯,数据安全",
+        robots: "index,follow"
+      }
+    }
+  },
+  {
+    name: "ImSolutionLanding",
+    path: '/im-solution',
+    component: ImSolutionLanding,
+    meta: {
+      seo: {
+        title: "行业IM解决方案 - 政企制造研发金融协同 | 简聊IM",
+        description: "面向政企、制造、研发与金融等行业，提供可落地的即时通讯协同解决方案。",
+        keywords: "IM解决方案,企业协同平台,政企即时通讯,制造业IM,金融行业通讯",
         robots: "index,follow"
       }
     }

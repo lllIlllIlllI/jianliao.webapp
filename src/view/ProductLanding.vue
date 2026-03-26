@@ -1,9 +1,10 @@
 <template>
   <div class="landing-page">
     <section class="hero">
-      <h1>简聊IM 产品能力</h1>
-      <p>面向社交沟通与企业协作的即时通讯平台，支持端对端加密、语音视频、群组与多端同步。</p>
+      <h1>企业即时通讯平台（私有化IM）</h1>
+      <p>简聊IM聚焦“安全可控、轻量部署、稳定连接”，支持私有化部署、消息与文件加密、多端同步与开放集成，帮助企业构建自有通信底座。</p>
       <div class="actions">
+        <router-link class="btn" to="/">进入主页</router-link>
         <router-link class="btn primary" to="/register">立即注册</router-link>
         <router-link class="btn" to="/login">登录体验</router-link>
       </div>
@@ -11,21 +12,27 @@
 
     <section class="grid">
       <article class="card">
-        <h2>安全通信</h2>
-        <p>支持端对端加密与多重账号安全机制，保障消息传输与账号访问安全。</p>
+        <h2>私有部署与数据主权</h2>
+        <p>支持私有化部署与专网接入，消息、文件、组织数据可由企业自主管理，满足高安全与合规场景。</p>
       </article>
       <article class="card">
-        <h2>高效沟通</h2>
-        <p>支持私聊、群聊、消息回执与会话管理，满足日常协作与业务沟通场景。</p>
+        <h2>安全通信能力</h2>
+        <p>支持通信链路加密、文件存储保护、登录风控与权限控制，降低敏感信息泄露风险。</p>
       </article>
       <article class="card">
-        <h2>音视频能力</h2>
-        <p>支持语音视频聊天与多人互动，覆盖远程协作、客户沟通与在线交流。</p>
+        <h2>稳定可靠与弱网可用</h2>
+        <p>针对高并发和弱网环境优化消息通道，支持消息送达与多终端漫游，保障沟通连续性。</p>
       </article>
       <article class="card">
-        <h2>多端同步</h2>
-        <p>覆盖 Web 与多终端接入，消息实时同步，随时随地保持在线。</p>
+        <h2>开放集成能力</h2>
+        <p>提供 SDK、REST API 与 Webhook，可对接OA、CRM、工单、审批等业务系统，实现统一协同入口。</p>
       </article>
+    </section>
+
+    <section class="topics">
+      <router-link class="topic-link" to="/im-sdk">IM SDK 与开放接口</router-link>
+      <router-link class="topic-link" to="/private-im">私有化部署方案</router-link>
+      <router-link class="topic-link" to="/im-solution">行业解决方案</router-link>
     </section>
   </div>
 </template>
@@ -112,5 +119,24 @@ export default {
   margin: 0;
   color: #5d7085;
   line-height: 1.7;
+}
+
+.topics {
+  margin: 18px auto 0;
+  max-width: 980px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.topic-link {
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid #d6e3f3;
+  color: #2d4b6a;
+  background: #fff;
+  padding: 8px 14px;
+  font-size: 14px;
 }
 </style>

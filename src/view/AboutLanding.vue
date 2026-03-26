@@ -2,21 +2,24 @@
   <div class="landing-page">
     <section class="hero">
       <h1>关于简聊IM</h1>
-      <p>简聊IM专注即时通讯能力建设，提供安全可靠的消息、音视频与协作能力，帮助团队高效连接。</p>
+      <p>我们专注企业级即时通讯能力建设，围绕安全、可靠、可扩展打造 IM 基础平台，服务协同办公与业务沟通场景。</p>
+      <div class="hero-actions">
+        <router-link class="go-home" to="/">进入主页</router-link>
+      </div>
     </section>
 
     <section class="content">
       <article class="card">
-        <h2>我们的定位</h2>
-        <p>面向企业与个人场景，提供稳定、低延迟、可扩展的即时通讯产品体验。</p>
+        <h2>产品定位</h2>
+        <p>面向政企、制造、金融、研发等场景，提供可私有化、可集成、可持续演进的即时通讯平台。</p>
       </article>
       <article class="card">
         <h2>核心能力</h2>
-        <p>支持端对端加密、语音视频聊天、好友与群组管理、多端实时同步。</p>
+        <p>覆盖消息通道、组织通讯录、音视频协同、SDK 接入、开放 API 与安全审计能力。</p>
       </article>
       <article class="card">
-        <h2>联系我们</h2>
-        <p>产品咨询、商务合作与技术支持，请访问官网客服通道。</p>
+        <h2>服务支持</h2>
+        <p>提供部署咨询、方案评估、接口对接与上线支持，帮助团队快速完成落地。</p>
         <a href="https://www.jianliao.net.cn/" target="_blank" rel="noopener noreferrer">联系官方客服</a>
       </article>
     </section>
@@ -55,6 +58,10 @@ export default {
   color: #4d6379;
 }
 
+.hero-actions {
+  margin-top: 14px;
+}
+
 .content {
   margin: 30px auto 0;
   max-width: 980px;
@@ -87,5 +94,11 @@ export default {
   text-decoration: none;
   color: var(--im-color-primary);
   font-weight: 600;
+}
+
+.go-home {
+  text-decoration: none;
+  color: var(--im-color-primary);
+  font-weight: 700;
 }
 </style>

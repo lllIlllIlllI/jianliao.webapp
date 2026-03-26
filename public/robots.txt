@@ -4,6 +4,9 @@ Allow: /register
 Allow: /product
 Allow: /download
 Allow: /about
+Allow: /im-sdk
+Allow: /private-im
+Allow: /im-solution
 Disallow: /home
 Disallow: /password/reset
 Sitemap: https://web.jianliao.net/sitemap.xml

@@ -2,23 +2,26 @@
   <div class="landing-page">
     <section class="hero">
       <h1>简聊IM 下载中心</h1>
-      <p>获取最新版简聊客户端，支持多终端协同，快速开启安全、稳定、流畅的即时通讯体验。</p>
+      <p>支持 Web、iOS、Android 多端登录与消息同步，适配企业办公与移动沟通场景，开箱即用。</p>
+      <div class="hero-actions">
+        <router-link class="btn" to="/">进入主页</router-link>
+      </div>
     </section>
 
     <section class="download-grid">
       <article class="download-card">
         <h2>iOS</h2>
-        <p>适用于 iPhone 和 iPad 设备，支持移动端实时消息与音视频沟通。</p>
+        <p>适用于 iPhone 和 iPad，支持实时消息、文件传输、语音视频与消息漫游。</p>
         <a class="btn" href="https://www.jianliao.net.cn/" target="_blank" rel="noopener noreferrer">前往下载</a>
       </article>
       <article class="download-card">
         <h2>Android</h2>
-        <p>适用于主流 Android 设备，支持消息同步、群聊与文件传输。</p>
+        <p>适用于主流 Android 设备，支持群聊协同、消息同步、弱网重连与通知提醒。</p>
         <a class="btn" href="https://www.jianliao.net.cn/" target="_blank" rel="noopener noreferrer">前往下载</a>
       </article>
       <article class="download-card">
         <h2>Web</h2>
-        <p>无需安装，浏览器即可使用，适合快速访问与跨设备办公场景。</p>
+        <p>浏览器即开即用，适合企业外部访问、临时协作和跨设备办公。</p>
         <router-link class="btn" to="/login">立即使用</router-link>
       </article>
     </section>
@@ -55,6 +58,10 @@ export default {
   margin: 16px auto 0;
   max-width: 740px;
   color: #4c6075;
+}
+
+.hero-actions {
+  margin-top: 14px;
 }
 
 .download-grid {

@@ -59,7 +59,7 @@ module.exports = {
 			externals: ["electron-screenshots"],
 			builderOptions: {
 				// 包名
-				appId: 'com.boxim',
+				appId: 'net.jianliao',
 				productName: '简聊IM', // 安装包名称
 				icon: "public/logo.ico", // 安装包logo
 				win: {
