@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '' 's/^\\\\\\([ \\\\t]*\\\\\\)console\\\\.log\\(/\\\\1if \\(process.env.NODE_ENV === \"development\"\\) { console.log\\(/g' src/api/wssocket.js)",
+      "Bash(sed -i '' '/if \\(process.env.NODE_ENV === \"development\"\\) { console.log\\(/s/$/\\); }/g' src/api/wssocket.js)",
+      "Read(//tmp/**)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(rm -f /Volumes/disk4/GitHub/jianliao.webapp/.git/index.lock)",
+      "Bash(git commit -m '🔒 fix: Critical security and stability improvements:*)",
+      "Bash(pkill -f \"git commit\")",
+      "Bash(rm -f .git/index.lock .git/index)",
+      "Bash(git reset:*)",
+      "Bash(git commit -m '🔒 Security and stability improvements - prevent memory leaks, XSS/SQL injection, unlimited reconnects:*)",
+      "Bash(node -c src/store/configStore.js)",
+      "Bash(node -c src/api/wssocket.js)",
+      "Bash(git checkout:*)",
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp checkout src/api/wssocket.js)",
+      "Bash(python3 /tmp/fix-wssocket.py)",
+      "Bash(rm -f .git/index.lock)",
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp checkout src/api/wssocket.js src/api/camera.js src/api/webrtc.js)",
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp status)",
+      "Bash(git commit --amend -m '🔒 Security and stability improvements - prevent memory leaks, XSS/SQL injection, unlimited reconnects:*)",
+      "Bash(node -c src/view/Home.vue)",
+      "Bash(node -c src/view/Mobile.vue)",
+      "Bash(node -c src/api/httpRequest.js)",
+      "Bash(git commit -m '🔐 fix: Critical security and stability improvements:*)",
+      "Bash(git commit -m '🔧 fix: Initialize failure - add safe checks for userInfo loading:*)",
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp add -A)",
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp commit -m \"fix: Initialize failure - add safe checks for userInfo loading\")"
+    ]
+  }
+}

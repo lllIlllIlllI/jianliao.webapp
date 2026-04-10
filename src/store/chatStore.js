@@ -507,6 +507,11 @@ export default defineStore('chatStore', {
 		loadChat() {
 			return new Promise((resolve, reject) => {
 				let userStore = useUserStore();
+				// 确保userInfo已加载
+				if (!userStore.userInfo || !userStore.userInfo.id) {
+					resolve();
+					return;
+				}
 				let userId = userStore.userInfo.id;
 				let key = "chats-" + userId;
 				localForage.getItem(key).then((chatsData) => {

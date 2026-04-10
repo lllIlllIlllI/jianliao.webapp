@@ -710,9 +710,6 @@ export default {
 			this.audio.pause();
 			this.audio = null;
 		}
-
-		// 卸载Store
-		this.unloadStore();
 	}
 }
 </script>
