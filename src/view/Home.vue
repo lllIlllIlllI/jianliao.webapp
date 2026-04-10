@@ -277,20 +277,23 @@ export default {
 		},
 		pullPrivateOfflineMessage(minId) {
 			return this.$http({
-				url: "/message/private/loadOfflineMessage?minId=" + minId,
-				method: 'GET'
+				url: "/message/private/loadOfflineMessage",
+				method: 'GET',
+				params: { minId }
 			})
 		},
 		pullGroupOfflineMessage(minId) {
 			return this.$http({
-				url: "/message/group/loadOfflineMessage?minId=" + minId,
-				method: 'GET'
+				url: "/message/group/loadOfflineMessage",
+				method: 'GET',
+				params: { minId }
 			})
 		},
 		pullSystemOfflineMessage(minSeqNo) {
 			return this.$http({
-				url: "/message/system/loadOfflineMessage?minSeqNo=" + minSeqNo,
-				method: 'GET'
+				url: "/message/system/loadOfflineMessage",
+				method: 'GET',
+				params: { minSeqNo }
 			})
 		},
 		handlePrivateMessage(msg) {
@@ -691,7 +694,25 @@ export default {
 		window.electronAPI && window.electronAPI.sendEvent('center')
 	},
 	unmounted() {
-		this.$wsApi.close();
+		// 清理事件监听
+		this.$eventBus.$off('exit');
+		this.$eventBus.$off('openPrivateVideo');
+		this.$eventBus.$off('openGroupVideo');
+		this.$eventBus.$off('openUserInfo');
+		this.$eventBus.$off('openGroupInfo');
+		this.$eventBus.$off('openFullImage');
+
+		// 关闭WebSocket
+		this.$wsApi.close(3000);
+
+		// 清理音频对象
+		if (this.audio) {
+			this.audio.pause();
+			this.audio = null;
+		}
+
+		// 卸载Store
+		this.unloadStore();
 	}
 }
 </script>

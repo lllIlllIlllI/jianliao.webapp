@@ -13,7 +13,7 @@ const http = axios.create({
 http.interceptors.request.use(config => {
 	let accessToken = sessionStorage.getItem("accessToken");
 	if (accessToken) {
-		config.headers.accessToken = encodeURIComponent(accessToken);
+		config.headers.Authorization = `Bearer ${accessToken}`;
 	}
 	return config
 }, error => {
