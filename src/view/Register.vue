@@ -202,6 +202,8 @@ export default {
 						data: this.dataForm
 					}).then(() => {
 						this.$message.success("注册成功!");
+						// 注册成功，清除缓存中的邀请码
+						sessionStorage.removeItem('inviteCode');
 					})
 				}
 			});
@@ -295,10 +297,18 @@ export default {
 				this.switchMode(this.config.mode[0]);
 			}
 		})
-		// 从URL参数读取邀请码
-		const inviteCode = this.$route.query.code;
-		if (inviteCode) {
-			this.dataForm.inviteCode = inviteCode;
+		// 从URL参数或缓存读取邀请码
+		const urlCode = this.$route.query.code;
+		if (urlCode) {
+			// URL中有参数，使用URL参数并保存到缓存
+			this.dataForm.inviteCode = urlCode;
+			sessionStorage.setItem('inviteCode', urlCode);
+		} else {
+			// 从缓存读取
+			const cachedCode = sessionStorage.getItem('inviteCode');
+			if (cachedCode) {
+				this.dataForm.inviteCode = cachedCode;
+			}
 		}
 		// electron窗口大小
 		window.electronAPI && window.electronAPI.sendEvent('resize', {
