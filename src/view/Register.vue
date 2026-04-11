@@ -149,7 +149,7 @@ export default {
 				userName: '',
 				password: '',
 				confirmPassword: '',
-				inviteCode: '123456'
+				inviteCode: ''
 			},
 			// 密码显示状态
 			isShowPwd: false,
