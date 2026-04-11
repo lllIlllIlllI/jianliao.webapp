@@ -186,9 +186,9 @@ export default {
 			emailLockTime: 0,
 			emailLockTimer: null,
 			modeNameMap: {
-				username: "用户名注册",
-				phone: "手机注册",
-				email: "邮箱注册"
+				username: "注册",
+				phone: "注册",
+				email: "注册"
 			}
 		};
 	},
