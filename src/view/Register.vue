@@ -149,7 +149,7 @@ export default {
 				userName: '',
 				password: '',
 				confirmPassword: '',
-				inviteCode: ''
+				inviteCode: '123456'
 			},
 			// 密码显示状态
 			isShowPwd: false,
@@ -295,6 +295,11 @@ export default {
 				this.switchMode(this.config.mode[0]);
 			}
 		})
+		// 从URL参数读取邀请码
+		const inviteCode = this.$route.query.code;
+		if (inviteCode) {
+			this.dataForm.inviteCode = inviteCode;
+		}
 		// electron窗口大小
 		window.electronAPI && window.electronAPI.sendEvent('resize', {
 			width: 440,
