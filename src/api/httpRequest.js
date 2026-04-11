@@ -13,7 +13,7 @@ const http = axios.create({
 http.interceptors.request.use(config => {
 	let accessToken = sessionStorage.getItem("accessToken");
 	if (accessToken) {
-		config.headers.Authorization = `Bearer ${accessToken}`;
+		config.headers.accessToken = accessToken;
 	}
 	return config
 }, error => {
@@ -27,12 +27,16 @@ http.interceptors.response.use(async response => {
 	if (response.data.code == 200) {
 		return response.data.data;
 	} else if (response.data.code == 400) {
-		return exit();
+		// code 400: 未登录或业务错误
+		console.log("400错误:", response.data);
+		exit();
+		return Promise.reject(response.data);
 	} else if (response.data.code == 401) {
 		console.log("token失效，尝试重新获取")
 		let refreshToken = sessionStorage.getItem("refreshToken");
 		if (!refreshToken) {
-			return exit()
+			exit();
+			return Promise.reject(response.data);
 		}
 		// 发送请求, 进行刷新token操作, 获取新的token
 		const data = await http({
@@ -43,7 +47,11 @@ http.interceptors.response.use(async response => {
 			}
 		}).catch(() => {
 			exit();
+			return Promise.reject(response.data);
 		})
+		if (!data) {
+			return Promise.reject(response.data);
+		}
 		// 保存token
 		sessionStorage.setItem("accessToken", data.accessToken);
 		sessionStorage.setItem("refreshToken", data.refreshToken);

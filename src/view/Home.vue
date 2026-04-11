@@ -571,7 +571,9 @@ export default {
 			this.$wsApi.close(3000);
 			sessionStorage.removeItem("accessToken");
 			localStorage.setItem("isAutoLogin", false)
-			this.$router.push("/login");
+			if (this.$route.path !== "/login") {
+				this.$router.push("/login");
+			}
 		},
 		closeAllBox() {
 			this.$refs.groupInfo.close();
