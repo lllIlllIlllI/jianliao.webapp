@@ -203,7 +203,7 @@ export default {
 					}).then(() => {
 						this.$message.success("注册成功!");
 						// 注册成功，清除缓存中的邀请码
-						sessionStorage.removeItem('inviteCode');
+						localStorage.removeItem('inviteCode');
 					})
 				}
 			});
@@ -302,10 +302,10 @@ export default {
 		if (urlCode) {
 			// URL中有参数，使用URL参数并保存到缓存
 			this.dataForm.inviteCode = urlCode;
-			sessionStorage.setItem('inviteCode', urlCode);
+			localStorage.setItem('inviteCode', urlCode);
 		} else {
 			// 从缓存读取
-			const cachedCode = sessionStorage.getItem('inviteCode');
+			const cachedCode = localStorage.getItem('inviteCode');
 			if (cachedCode) {
 				this.dataForm.inviteCode = cachedCode;
 			}
