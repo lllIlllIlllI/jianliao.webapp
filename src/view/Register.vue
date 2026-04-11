@@ -289,6 +289,14 @@ export default {
 			handler() {
 				this.switchMode(this.config.mode[0]);
 			}
+		},
+		'dataForm.inviteCode': {
+			handler(newVal) {
+				// 邀请码变化时，自动保存到缓存
+				if (newVal) {
+					localStorage.setItem('inviteCode', newVal);
+				}
+			}
 		}
 	},
 	mounted() {
