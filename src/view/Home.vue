@@ -101,8 +101,8 @@ export default {
 				if (envWsUrl) {
 					return envWsUrl;
 				}
-				const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-				return `${wsProtocol}//${window.location.host}/im`;
+				// 直接连接到外部 WebSocket 服务器
+				return 'wss://jlws.relaynet.io/im';
 			},
 			init() {
 			this.$eventBus.$on('exit', () => {
