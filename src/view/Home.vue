@@ -97,10 +97,11 @@ export default {
 	},
 		methods: {
 			getWsUrl() {
-				const envWsUrl = process.env.VUE_APP_WS_URL;
-				if (envWsUrl) {
-					return envWsUrl;
+				// 优先使用环境变量配置
+				if (process.env.VUE_APP_WS_URL) {
+					return process.env.VUE_APP_WS_URL;
 				}
+				// 如果是相对路径（开发环境通过代理）
 				const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 				return `${wsProtocol}//${window.location.host}/im`;
 			},
