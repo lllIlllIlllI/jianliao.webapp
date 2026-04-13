@@ -3,9 +3,8 @@ import router from '../router';
 import { Message } from 'element-ui'
 
 const http = axios.create({
-	baseURL: process.env.VUE_APP_BASE_API || 'https://jlapi.relaynet.io',
-	timeout: 1000 * 30,
-	withCredentials: true
+	baseURL: process.env.VUE_APP_BASE_API || '/api',
+	timeout: 1000 * 30
 })
 
 /**
