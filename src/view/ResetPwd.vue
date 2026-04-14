@@ -141,8 +141,8 @@ export default {
             countdownTimer: null,
             dataForm: {
                 mode: 'phone',
-                phone: '13794329827',
-                email: '825657193@qq.com',
+                phone: '13023620083',
+                email: '2856565526@qq.com',
                 code: '',
                 password: '123456',
                 confirmPassword: '123456',
