@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<div class="home-page" @click="closeAllBox" @contextmenu="closeAllBox">
 		<div class="app-container" :class="{ fullscreen: configStore.fullScreen }">
 			<div class="navi-bar">
@@ -31,7 +31,12 @@
 									<span class="icon iconfont icon-setting" style="font-size: 20px"></span>
 								</div>
 							</router-link>
-							<router-link class="link" v-bind:to="'/home/website'">
+								<router-link v-if="mine && mine.isAdmin" class="link" v-bind:to="'/home/admin/discover'">
+									<div class="menu-item website-menu-item" title="系统配置">
+										<i class="icon el-icon-s-operation"></i>
+									</div>
+								</router-link>
+								<router-link class="link" v-bind:to="'/home/website'">
 								<div class="menu-item website-menu-item" title="官网">
 									<i class="icon el-icon-link"></i>
 								</div>
@@ -978,3 +983,7 @@ export default {
 	}
 }
 </style>
+
+
+
+

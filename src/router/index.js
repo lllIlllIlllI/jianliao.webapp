@@ -1,4 +1,4 @@
-import Vue from 'vue'
+﻿import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Login from '../view/Login'
 import Register from '../view/Register'
@@ -202,6 +202,20 @@ const router = new VueRouter({
         }
       },
       {
+        name: "AdminDiscoverConfig",
+        path: "/home/admin/discover",
+        component: () => import("../view/AdminDiscoverConfig.vue"),
+        meta: {
+          seo: {
+            title: "系统配置-发现页 - 简聊IM",
+            description: "配置移动端发现页显示与URL。",
+            keywords: "简聊IM,系统配置,发现页",
+            robots: "noindex,nofollow"
+          }
+        }
+      },
+
+      {
         name: "Website",
         path: "/home/website",
         component: () => import("../view/Website.vue"),
@@ -220,3 +234,4 @@ const router = new VueRouter({
 });
 
 export default router;
+

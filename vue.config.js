@@ -1,7 +1,7 @@
 const path = require('path')
 const fs = require('fs')
-// const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'https://127.0.0.1:8888'
-// const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'http://127.0.0.1:8878'
+// const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'http://127.0.0.1:28888'
+// const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'http://127.0.0.1:28878'
 const devApiTarget = process.env.DEV_API_PROXY_TARGET || 'https://jlapi.relaynet.io'
 const devWsTarget = process.env.DEV_WS_PROXY_TARGET || 'https://jlws.relaynet.io'
 
@@ -60,7 +60,7 @@ module.exports = {
 			builderOptions: {
 				// 包名
 				appId: 'net.jianliao',
-				productName: '简聊IM', // 安装包名称
+				productName: 'jianliao', // 安装包名称
 				icon: "public/logo.ico", // 安装包logo
 				win: {
 					icon: 'public/logo.ico' // Windows图标,大小要求:256x256

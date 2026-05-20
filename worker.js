@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env) {
-    // const apiOrigin = env.API_ORIGIN || "https://api.jianliao.net";
-    // const wsOrigin = env.WS_ORIGIN || "https://jianliao.relaynet.io";
+    // const apiOrigin = env.API_ORIGIN || "https://127.0.0.1:28888";
+    // const wsOrigin = env.WS_ORIGIN || "http://127.0.0.1:28889";
     const apiOrigin = env.API_ORIGIN || "https://jlapi.relatnet.io";
     const wsOrigin = env.WS_ORIGIN || "https://jlws.relaynet.io";
     const url = new URL(request.url);

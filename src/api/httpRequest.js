@@ -2,8 +2,14 @@ import axios from 'axios'
 import router from '../router'; 
 import { Message } from 'element-ui'
 
+const baseURL =
+	typeof process.env.VUE_APP_BASE_API !== 'undefined'
+		? process.env.VUE_APP_BASE_API
+		: (process.env.NODE_ENV === 'development' ? '/api' : '');
+
+
 const http = axios.create({
-	baseURL: process.env.VUE_APP_BASE_API || '',
+	baseURL,
 	timeout: 1000 * 30
 })
 

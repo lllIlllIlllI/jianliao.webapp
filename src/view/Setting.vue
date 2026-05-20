@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-container class="setting-page">
     <!-- 左侧导航 -->
     <el-aside width="230px" class="setting-aside" :class="{ fullscreen: configStore.fullScreen }">
@@ -89,7 +89,8 @@ export default {
           label: '绑定邮箱',
           icon: 'el-icon-message',
           component: 'bindEmail'
-        },         {
+        },
+        {
           label: '修改密码',
           icon: 'el-icon-lock',
           component: 'modifyPassword'
@@ -99,7 +100,6 @@ export default {
           icon: 'el-icon-postcard',
           component: 'realnameAuth'
         }
-        
       ]
     }
   },
