@@ -87,6 +87,7 @@ async function createWindow() {
     minWidth: 0,    // 移除最小宽度限制
     minHeight: 0,   // 移除最小高度限制
     frame: false,
+    backgroundColor: '#ffffff',  // 设置窗体背景色为白色，避免灰色边框
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
