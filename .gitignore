@@ -47,3 +47,4 @@ release/
 
 # Claude AI Development
 .claude/
+*.md

@@ -574,31 +574,20 @@ function initIpcMainEvent() {
         return
       }
 
-      // 企业级方案：稳定的最大化实现
-      // 问题：直接调用 win.maximize() 在某些场景下大小不稳定
-      // 解决方案：使用 setBounds 设置到完整的工作区大小
-
+      // 简单稳定的最大化实现
+      // 直接使用Electron内置的maximize()方法
+      // 如果已经最大化则恢复
       if (win.isMaximized()) {
-        // 已经最大化，忽略
-        if (isDevelopment) console.log('[Main] Window already maximized')
+        if (isDevelopment) console.log('[Main] Window already maximized, restoring...')
+        win.unmaximize()
         return
       }
 
-      // 获取当前显示器信息
-      const display = screen.getDisplayMatching(win.getBounds())
-      const { x, y, width, height } = display.workAreaSize
-
-      // 使用工作区大小设置窗口（比 maximize() 更稳定）
-      const workArea = display.workArea
-      win.setBounds({
-        x: workArea.x,
-        y: workArea.y,
-        width: workArea.width,
-        height: workArea.height
-      })
+      // 最大化窗口
+      win.maximize()
 
       if (isDevelopment) {
-        console.log(`[Main] ✓ Window maximized via setBounds: ${workArea.width}x${workArea.height}`)
+        console.log('[Main] ✓ Window maximized')
       }
     } catch (error) {
       console.error('[Main] Error maximizing window:', error.message)
@@ -618,42 +607,11 @@ function initIpcMainEvent() {
         return
       }
 
-      // 恢复到之前的大小（如果记录了的话）
-      // 否则使用智能默认大小
-      const currentHash = lastRoute || 'home'
-
-      // 计算合理的恢复大小
-      const display = screen.getDisplayMatching(win.getBounds())
-      const { width: sw, height: sh } = display.workAreaSize
-
-      let w, h
-      if (/home/.test(currentHash)) {
-        w = Math.round((sw - 60) * 0.75)
-        h = Math.round((sh - 60) * 0.75)
-        w = Math.max(800, w)
-        h = Math.max(600, h)
-      } else {
-        // 默认大小
-        w = Math.round(sw * 0.6)
-        h = Math.round(sh * 0.6)
-      }
-
-      // 计算居中位置
-      const screenCenterX = display.bounds.x + sw / 2
-      const screenCenterY = display.bounds.y + sh / 2
-      const x = Math.round(screenCenterX - w / 2)
-      const y = Math.round(screenCenterY - h / 2)
-
-      // 设置恢复大小
-      win.setBounds({
-        x,
-        y,
-        width: w,
-        height: h
-      })
+      // 恢复窗口
+      win.unmaximize()
 
       if (isDevelopment) {
-        console.log(`[Main] ✓ Window unmaximized: ${w}x${h} at (${x}, ${y})`)
+        console.log('[Main] ✓ Window unmaximized')
       }
     } catch (error) {
       console.error('[Main] Error unmaximizing window:', error.message)
