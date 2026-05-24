@@ -134,49 +134,70 @@ async function createWindow() {
 
   // 帮助函数：调整窗口大小
   const adjustWindowSize = (hash) => {
-    const display = screen.getDisplayMatching(win.getBounds())
-    const { width: sw, height: sh } = display.workAreaSize
-    const margin = 60 // 与屏幕边缘的安全距离
+    // 防止过于频繁的调用
+    if (!win || win.isDestroyed()) return
 
-    if (/home/.test(hash)) {
-      // 主界面：屏幕工作区的 75%，但限制在合理范围内
-      const recommendW = Math.round((sw - margin) * 0.75)
-      const recommendH = Math.round((sh - margin) * 0.75)
-      const w = Math.max(800, Math.min(1200, recommendW))
-      const h = Math.max(600, Math.min(850, recommendH))
-      win.setMinimumSize(800, 600)
-      win.setMaximizable(true)
-      win.setResizable(true)
-      win.setSize(w, h)
-      win.center()
-      if (isDevelopment) console.log('[Main] Resized to home:', w, 'x', h)
-    } else if (/login/.test(hash)) {
-      const w = Math.min(450, sw - margin)
-      const h = Math.min(550, sh - margin)
-      win.setMinimumSize(360, 440)
-      win.setMaximizable(false)
-      win.setResizable(false)
-      win.setSize(w, h)
-      win.center()
-      if (isDevelopment) console.log('[Main] Resized to login:', w, 'x', h)
-    } else if (/register/.test(hash)) {
-      const w = Math.min(480, sw - margin)
-      const h = Math.min(750, sh - margin)
-      win.setMinimumSize(380, 650)
-      win.setMaximizable(false)
-      win.setResizable(false)
-      win.setSize(w, h)
-      win.center()
-      if (isDevelopment) console.log('[Main] Resized to register:', w, 'x', h)
-    } else if (/password|reset/.test(hash)) {
-      const w = Math.min(750, sw - margin)
-      const h = Math.min(650, sh - margin)
-      win.setMinimumSize(380, 500)
-      win.setMaximizable(false)
-      win.setResizable(false)
-      win.setSize(w, h)
-      win.center()
-      if (isDevelopment) console.log('[Main] Resized to password:', w, 'x', h)
+    try {
+      const display = screen.getDisplayMatching(win.getBounds())
+      const { width: sw, height: sh } = display.workAreaSize
+      const margin = 60
+
+      let minW, minH, w, h, resizable = true
+
+      if (/home/.test(hash)) {
+        minW = 800
+        minH = 600
+        const recommendW = Math.round((sw - margin) * 0.75)
+        const recommendH = Math.round((sh - margin) * 0.75)
+        w = Math.max(minW, Math.min(1200, recommendW))
+        h = Math.max(minH, Math.min(850, recommendH))
+        resizable = true
+      } else if (/login/.test(hash)) {
+        minW = 360
+        minH = 440
+        w = Math.min(450, sw - margin)
+        h = Math.min(550, sh - margin)
+        resizable = true
+      } else if (/register/.test(hash)) {
+        minW = 380
+        minH = 650
+        w = Math.min(480, sw - margin)
+        h = Math.min(750, sh - margin)
+        resizable = true
+      } else if (/password|reset/.test(hash)) {
+        minW = 380
+        minH = 500
+        w = Math.min(750, sw - margin)
+        h = Math.min(650, sh - margin)
+        resizable = true
+      } else {
+        return
+      }
+
+      // 关键：临时移除最大尺寸限制，允许窗口缩小
+      win.setMaximumSize(65535, 65535) // 设置为极大值，实际上等于无限制
+
+      // 按正确顺序调用API
+      win.setMinimumSize(minW, minH)
+      win.setResizable(resizable)
+      win.setMaximizable(/home/.test(hash)) // 只有主页可以最大化
+
+      // 使用setTimeout确保setSize生效
+      setTimeout(() => {
+        if (win && !win.isDestroyed()) {
+          // 先调用setSize
+          win.setSize(w, h)
+          // 再center窗口
+          win.center()
+
+          if (isDevelopment) {
+            const bounds = win.getBounds()
+            console.log(`[Main] ✓ Window resized to ${hash}: ${bounds.width}x${bounds.height}`)
+          }
+        }
+      }, 50)
+    } catch (error) {
+      console.error('[Main] Error adjusting window size:', error.message)
     }
   }
 
