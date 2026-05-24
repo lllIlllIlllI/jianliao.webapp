@@ -699,7 +699,6 @@ export default {
 			height: 660,
 			maximizable: true
 		})
-		window.electronAPI && window.electronAPI.sendEvent('center')
 	},
 	unmounted() {
 		// 清理事件监听

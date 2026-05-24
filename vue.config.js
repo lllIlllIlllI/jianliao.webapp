@@ -62,6 +62,18 @@ module.exports = {
 				appId: 'net.jianliao',
 				productName: 'jianliao', // 安装包名称
 				icon: "public/logo.ico", // 安装包logo
+				// 确保 preload.js 复制到 resources 目录（asar 外），而非 asar 内部
+				files: ['**', '!node_modules/**', '!**/*.map', '!**/dist/**'],
+				extraFiles: [
+					{
+						from: 'dist_electron/bundled/preload.js',
+						to: '../preload.js'
+					},
+					{
+						from: 'node_modules/electron-screenshots',
+						to: './node_modules/electron-screenshots'
+					}
+				],
 				win: {
 					icon: 'public/logo.ico' // Windows图标,大小要求:256x256
 				},

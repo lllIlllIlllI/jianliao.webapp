@@ -17,19 +17,33 @@ export default {
         }
     },
     methods: {
+        sendEvent(eventName) {
+            if (window.electronAPI && window.electronAPI.sendEvent) {
+                try {
+                    window.electronAPI.sendEvent(eventName);
+                    console.log(`[ElectronMenu] Sent event: ${eventName}`);
+                } catch (error) {
+                    console.error(`[ElectronMenu] Failed to send event "${eventName}":`, error);
+                }
+            } else {
+                console.error(`[ElectronMenu] window.electronAPI not available! Cannot send "${eventName}"`);
+                console.error('[ElectronMenu] window.electronAPI:', window.electronAPI);
+                console.error('[ElectronMenu] navigator.userAgent:', navigator.userAgent);
+            }
+        },
         onMinimize() {
-            window.electronAPI.sendEvent('minimize');
+            this.sendEvent('minimize');
         },
         onUnmaximize() {
             this.configStore.setFullScreen(false);
-            window.electronAPI.sendEvent('unmaximize');
+            this.sendEvent('unmaximize');
         },
         onMaximize() {
             this.configStore.setFullScreen(true);
-            window.electronAPI.sendEvent('maximize');
+            this.sendEvent('maximize');
         },
         onClose() {
-            window.electronAPI.sendEvent('close');
+            this.sendEvent('close');
         }
     },
     computed: {

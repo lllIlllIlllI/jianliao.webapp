@@ -1,42 +1,197 @@
 'use strict'
 
-import { app, protocol, BrowserWindow, Menu, Tray, ipcMain, globalShortcut } from 'electron'
+import { app, protocol, BrowserWindow, Menu, Tray, ipcMain, globalShortcut, screen } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
-import Screenshots from "electron-screenshots";
 
 const path = require('path');
 const { nativeImage } = require('electron');
+const fs = require('fs');
 const isDevelopment = process.env.NODE_ENV !== 'production'
 let win
 let tray
-let appLogo = path.join(__static, 'logo.ico');
+
+// 获取logo文件路径（支持开发和生产环境）
+let appLogo
+try {
+  // 尝试从 __static 获取（生产环境）
+  if (typeof __static !== 'undefined') {
+    appLogo = path.join(__static, 'logo.ico')
+  } else {
+    // 开发环境：从项目public目录获取
+    appLogo = path.join(app.getAppPath(), '../public/logo.ico')
+    if (!fs.existsSync(appLogo)) {
+      // 备用方案
+      appLogo = path.join(process.cwd(), 'public/logo.ico')
+    }
+  }
+  if (!fs.existsSync(appLogo)) {
+    console.warn('[Main] Logo not found at:', appLogo, '- using default')
+    appLogo = null
+  }
+} catch (error) {
+  console.warn('[Main] Error getting logo path:', error.message)
+  appLogo = null
+}
+
+console.log('[Main] App logo path:', appLogo)
+
 let blinkTimer = null; // 闪烁定时器
 let isBlinking = false; // 是否正在闪烁
 let blinkIconVisible = true; // 当前图标是否可见
 let defaultTooltip = process.env.VUE_APP_NAME; // 默认 tooltip 文本
 
+// 动态加载 electron-screenshots（生产环境可能不可用）
+let Screenshots = null
+try {
+  Screenshots = require('electron-screenshots')
+} catch (error) {
+  console.warn('[Main] electron-screenshots module not available:', error.message)
+  Screenshots = null
+}
+
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
 ])
 async function createWindow() {
-  // 创建窗口
-  win = new BrowserWindow({
-    width: 360,
-    height: 440,
-    icon: appLogo,
+  // preload.js 路径：生产环境在资源目录根部，开发环境在编译输出目录
+  let preloadPath
+  if (app.isPackaged) {
+    // 生产环境：preload.js 在 resources 目录（asar外）
+    preloadPath = path.join(process.resourcesPath, 'preload.js')
+  } else {
+    // 开发环境：preload.js 在 dist_electron/bundled 目录
+    preloadPath = path.join(app.getAppPath(), 'preload.js')
+  }
+
+  const fs = require('fs');
+  const preloadExists = fs.existsSync(preloadPath);
+
+  if (isDevelopment) {
+    console.log('[Main] ========== DEBUG INFO ==========');
+    console.log('[Main] Preload path:', preloadPath)
+    console.log('[Main] Preload exists:', preloadExists)
+    console.log('[Main] App packaged:', app.isPackaged)
+    console.log('[Main] App path:', app.getAppPath())
+    console.log('[Main] Resources path:', process.resourcesPath)
+    console.log('[Main] ================================');
+  }
+
+  if (!preloadExists && isDevelopment) {
+    console.warn('[Main] ⚠️  Preload file not found at:', preloadPath);
+  }
+
+  // 创建窗口（初始尺寸与登录页一致，避免启动时闪烁）
+  const windowConfig = {
+    width: 410,
+    height: 510,
+    minWidth: 360,
+    minHeight: 440,
     frame: false,
     webPreferences: {
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
-      preload: path.join(__dirname, './preload.js'),
-      webSecurity: false, // 解除跨域限制
-      devTools: true // 允许打开调试器
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: preloadPath,
+      webSecurity: false,
+      devTools: true
     }
+  }
+
+  if (appLogo) {
+    windowConfig.icon = appLogo
+  }
+
+  win = new BrowserWindow(windowConfig)
+
+  // 当页面加载完成时，注入diagnostics
+  win.webContents.on('dom-ready', () => {
+    console.log('[Main] DOM ready, checking electronAPI...')
+
+    // 延迟检查，确保preload有时间加载
+    setTimeout(() => {
+      win.webContents.executeJavaScript(`
+        console.log('[Renderer] ============ DIAGNOSTIC ============');
+        console.log('[Renderer] window.electronAPI exists:', !!window.electronAPI);
+        console.log('[Renderer] window.electronAPI:', window.electronAPI);
+        if (window.electronAPI) {
+          console.log('[Renderer] ✓ electronAPI.sendEvent:', typeof window.electronAPI.sendEvent);
+          console.log('[Renderer] ✓ electronAPI.invoke:', typeof window.electronAPI.invoke);
+          console.log('[Renderer] ✓ electronAPI.receive:', typeof window.electronAPI.receive);
+        } else {
+          console.error('[Renderer] ✗ electronAPI NOT available!');
+        }
+        console.log('[Renderer] =====================================');
+        window.rendererReady = true;
+      `).catch(err => {
+        console.error('[Main] Error executing diagnostic script:', err)
+      })
+    }, 500)
   })
 
   // 窗口获得焦点时停止闪烁
   win.on('focus', () => {
     stopBlink();
+  })
+
+  // 帮助函数：调整窗口大小
+  const adjustWindowSize = (hash) => {
+    const display = screen.getDisplayMatching(win.getBounds())
+    const { width: sw, height: sh } = display.workAreaSize
+    const margin = 60 // 与屏幕边缘的安全距离
+
+    if (/home/.test(hash)) {
+      // 主界面：屏幕工作区的 75%，但限制在合理范围内
+      const recommendW = Math.round((sw - margin) * 0.75)
+      const recommendH = Math.round((sh - margin) * 0.75)
+      const w = Math.max(800, Math.min(1200, recommendW))
+      const h = Math.max(600, Math.min(850, recommendH))
+      win.setMinimumSize(800, 600)
+      win.setMaximizable(true)
+      win.setResizable(true)
+      win.setSize(w, h)
+      win.center()
+      if (isDevelopment) console.log('[Main] Resized to home:', w, 'x', h)
+    } else if (/login/.test(hash)) {
+      const w = Math.min(450, sw - margin)
+      const h = Math.min(550, sh - margin)
+      win.setMinimumSize(360, 440)
+      win.setMaximizable(false)
+      win.setResizable(false)
+      win.setSize(w, h)
+      win.center()
+      if (isDevelopment) console.log('[Main] Resized to login:', w, 'x', h)
+    } else if (/register/.test(hash)) {
+      const w = Math.min(480, sw - margin)
+      const h = Math.min(750, sh - margin)
+      win.setMinimumSize(380, 650)
+      win.setMaximizable(false)
+      win.setResizable(false)
+      win.setSize(w, h)
+      win.center()
+      if (isDevelopment) console.log('[Main] Resized to register:', w, 'x', h)
+    } else if (/password|reset/.test(hash)) {
+      const w = Math.min(750, sw - margin)
+      const h = Math.min(650, sh - margin)
+      win.setMinimumSize(380, 500)
+      win.setMaximizable(false)
+      win.setResizable(false)
+      win.setSize(w, h)
+      win.center()
+      if (isDevelopment) console.log('[Main] Resized to password:', w, 'x', h)
+    }
+  }
+
+  // 监听路由变化，在主进程直接调整窗口大小
+  win.webContents.on('did-navigate-in-page', (event, url, isMainFrame) => {
+    if (!isMainFrame) return
+    const hash = (url.split('#')[1] || '').replace(/\?.*$/, '')
+    if (isDevelopment) console.log('[Main] Route changed to:', hash)
+    adjustWindowSize(hash)
+  })
+
+  // 备用方案：通过IPC从渲染进程接收路由变化（开发环境可能需要）
+  ipcMain.on('routeChange', (event, hash) => {
+    if (isDevelopment) console.log('[Main] Route changed via IPC:', hash)
+    adjustWindowSize(hash)
   })
 
   // 禁用顶部菜单
@@ -55,29 +210,37 @@ async function createWindow() {
 
 // 开始闪烁
 function startBlink() {
-  if (isBlinking) {
+  if (!tray || isBlinking) {
     return;
   }
   isBlinking = true;
   blinkIconVisible = true;
-  tray.setToolTip('您有新的未读消息');
-  // 每 500ms闪烁一次图标事
-  blinkTimer = setInterval(() => {
-    if (blinkIconVisible) {
-      // 显示空白图标（隐藏效果）
-      tray.setImage(nativeImage.createEmpty());
-      blinkIconVisible = false;
-    } else {
-      // 显示正常图标
-      tray.setImage(appLogo);
-      blinkIconVisible = true;
-    }
-  }, 500);
+  try {
+    tray.setToolTip('您有新的未读消息');
+    // 每 500ms闪烁一次图标事
+    blinkTimer = setInterval(() => {
+      if (!tray) return;
+      if (blinkIconVisible) {
+        // 显示空白图标（隐藏效果）
+        tray.setImage(nativeImage.createEmpty());
+        blinkIconVisible = false;
+      } else {
+        // 显示正常图标
+        if (appLogo) {
+          tray.setImage(appLogo);
+        }
+        blinkIconVisible = true;
+      }
+    }, 500);
+  } catch (error) {
+    console.error('[Main] Error in startBlink:', error)
+    isBlinking = false;
+  }
 }
 
 // 停止闪烁
 function stopBlink() {
-  if (!isBlinking) {
+  if (!tray || !isBlinking) {
     return
   }
   isBlinking = false;
@@ -85,33 +248,60 @@ function stopBlink() {
     clearInterval(blinkTimer);
     blinkTimer = null;
   }
-  // 恢复正常图标
-  tray.setImage(appLogo);
-  tray.setToolTip(defaultTooltip);
-  blinkIconVisible = true;
+  try {
+    // 恢复正常图标
+    if (appLogo) {
+      tray.setImage(appLogo);
+    }
+    tray.setToolTip(defaultTooltip);
+    blinkIconVisible = true;
+  } catch (error) {
+    console.error('[Main] Error in stopBlink:', error)
+  }
 }
 
 function createTray() {
-  tray = new Tray(appLogo)
-  defaultTooltip = process.env.VUE_APP_NAME; // 保存默认 tooltip
-  const contextMenu = Menu.buildFromTemplate([{
-    label: '显示窗口',
-    click: () => {
-      win.show();
-      stopBlink(); // 显示窗口时停止闪烁
+  try {
+    if (!appLogo || typeof appLogo !== 'string') {
+      console.warn('[Main] Cannot create tray: invalid logo -', appLogo)
+      tray = null
+      return
     }
-  }, {
-    label: '退出',
-    click: () => app.quit()
+
+    tray = new Tray(appLogo)
+    defaultTooltip = process.env.VUE_APP_NAME
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: '显示窗口',
+        click: () => {
+          if (win) {
+            win.show()
+            stopBlink()
+          }
+        }
+      },
+      {
+        label: '退出',
+        click: () => app.quit()
+      }
+    ])
+
+    tray.on('click', () => {
+      if (win) {
+        win.show()
+        stopBlink()
+      }
+    })
+
+    tray.setToolTip(defaultTooltip)
+    tray.setContextMenu(contextMenu)
+
+    console.log('[Main] ✓ Tray created successfully')
+  } catch (error) {
+    console.error('[Main] ✗ Failed to create tray:', error.message)
+    tray = null
   }
-  ])
-  // 点击托盘图标时显示窗口
-  tray.on('click', () => {
-    win.show();
-    stopBlink(); // 显示窗口时停止闪烁
-  });
-  tray.setToolTip(defaultTooltip)
-  tray.setContextMenu(contextMenu)
 }
 
 function initIpcMainEvent() {
@@ -126,14 +316,24 @@ function initIpcMainEvent() {
   // 用户点击页面的截屏按钮触发截屏
   ipcMain.handle('screenshot', () => {
     return new Promise((resolve, reject) => {
-      const screenshots = new Screenshots();
-      screenshots.startCapture();
-      screenshots.on("ok", (e, buffer, bounds) => {
-        resolve(buffer, bounds)
-      });
-      screenshots.on("cancel", (e) => {
+      if (!Screenshots) {
+        console.warn('[Main] Screenshots module not available')
         resolve()
-      });
+        return
+      }
+      try {
+        const screenshots = new Screenshots();
+        screenshots.startCapture();
+        screenshots.on("ok", (e, buffer, bounds) => {
+          resolve(buffer, bounds)
+        });
+        screenshots.on("cancel", (e) => {
+          resolve()
+        });
+      } catch (error) {
+        console.error('[Main] Screenshot error:', error)
+        resolve()
+      }
     })
   })
 
@@ -158,8 +358,19 @@ function initIpcMainEvent() {
   })
 
   ipcMain.on('resize', (event, v) => {
-    win.setSize(v.width, v.height)
-    win.setMaximizable(v.maximizable)
+    // 获取当前窗口所在显示器的工作区（排除任务栏），防止窗口超出屏幕
+    const display = screen.getDisplayMatching(win.getBounds())
+    const { width: sw, height: sh } = display.workAreaSize
+    const margin = 40 // 与屏幕边缘保留安全距离
+    const w = Math.min(v.width, sw - margin)
+    const h = Math.min(v.height, sh - margin)
+    win.setMinimumSize(
+      Math.min(v.minWidth || v.width, sw - margin),
+      Math.min(v.minHeight || v.height, sh - margin)
+    )
+    win.setSize(w, h)
+    win.setMaximizable(!!v.maximizable)
+    win.center()
   })
 
   ipcMain.on('center', () => {
@@ -178,23 +389,47 @@ function initIpcMainEvent() {
   ipcMain.on('stopTrayBlink', () => {
     stopBlink();
   })
+
+  // 诊断命令
+  ipcMain.on('diagnostic', (event, data) => {
+    console.log('[Main] Diagnostic request:', data)
+    const diagnostic = {
+      preloadPath: preloadPath,
+      preloadExists: preloadExists,
+      isDevelopment: isDevelopment,
+      appIsPackaged: app.isPackaged,
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath
+    }
+    console.log('[Main] Diagnostic info:', diagnostic)
+    event.reply('diagnostic-reply', diagnostic)
+  })
 }
 
 function initScreenshots() {
-  // 快捷键截屏
-  const screenshots = new Screenshots();
-  globalShortcut.register("ctrl+alt+a", () => {
-    if (!screenshots.$win || !screenshots.$win.isFocused) {
-      screenshots.startCapture();
-    }
-  })
+  if (!Screenshots) {
+    console.warn('[Main] Screenshots module not available, screenshot shortcuts disabled')
+    return
+  }
 
-  // esc取消截屏
-  globalShortcut.register("esc", () => {
-    if (screenshots.$win && screenshots.$win.isFocused()) {
-      screenshots.endCapture();
-    }
-  })
+  try {
+    // 快捷键截屏
+    const screenshots = new Screenshots();
+    globalShortcut.register("ctrl+alt+a", () => {
+      if (!screenshots.$win || !screenshots.$win.isFocused) {
+        screenshots.startCapture();
+      }
+    })
+
+    // esc取消截屏
+    globalShortcut.register("esc", () => {
+      if (screenshots.$win && screenshots.$win.isFocused()) {
+        screenshots.endCapture();
+      }
+    })
+  } catch (error) {
+    console.error('[Main] Failed to initialize screenshots:', error)
+  }
 }
 
 app.on('window-all-closed', () => {
@@ -208,10 +443,14 @@ app.on('activate', () => {
 })
 
 app.on('ready', async () => {
-  createWindow()
-  createTray()
+  // 先初始化IPC处理器，确保handler在window加载完成前就已注册
   initIpcMainEvent()
   initScreenshots()
+
+  // 然后创建window
+  await createWindow()
+  createTray()
+
   // 修改通知栏标题
   app.setAppUserModelId(process.env.VUE_APP_NAME)
 })

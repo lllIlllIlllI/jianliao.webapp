@@ -14,15 +14,55 @@ export default {
   name: 'App',
   components: { ElectronMenu },
   mounted() {
+    const configStore = useConfigStore();
+
+    // 方式1: 直接通过 electronAPI 检测（正常路径）
     if (window.electronAPI) {
-      const configStore = useConfigStore();
-      // 标记是否客户端模式
+      console.log('[App] electronAPI available');
       configStore.setElectronMode(true)
-      // 监听客户端的全屏/退出事件
       window.electronAPI.invoke('isFullScreen').then(fullScreen => {
         configStore.setFullScreen(fullScreen);
       })
     }
+    // 方式2: 兜底方案 - 通过 userAgent 检测是否在 Electron 中
+    else if (/electron/i.test(navigator.userAgent)) {
+      console.warn('[App] Electron detected via userAgent, but window.electronAPI not available');
+      configStore.setElectronMode(true)
+      // 尝试延迟再次检查 electronAPI（可能是加载延迟）
+      setTimeout(() => {
+        if (window.electronAPI && window.electronAPI.invoke) {
+          console.log('[App] electronAPI available after delay');
+          window.electronAPI.invoke('isFullScreen').then(fullScreen => {
+            configStore.setFullScreen(fullScreen);
+          })
+        } else {
+          console.warn('[App] electronAPI still not available after delay');
+        }
+      }, 500)
+    } else {
+      console.log('[App] Not in Electron environment');
+    }
+
+    // 监听路由变化，通知主进程调整窗口大小
+    this.$router.afterEach((to) => {
+      const routeName = to.name || '';
+      const routePath = to.path || '';
+      const routeFullPath = to.fullPath || '';
+
+      console.log('[App] Route changed:', { name: routeName, path: routePath, fullPath: routeFullPath });
+
+      // 通过IPC通知主进程
+      if (window.electronAPI && window.electronAPI.sendEvent) {
+        try {
+          window.electronAPI.sendEvent('routeChange', routePath);
+          console.log('[App] ✓ Sent routeChange event:', routePath);
+        } catch (error) {
+          console.error('[App] ✗ Failed to send routeChange:', error);
+        }
+      } else {
+        console.warn('[App] electronAPI not available for routeChange');
+      }
+    });
   }
 }
 </script>

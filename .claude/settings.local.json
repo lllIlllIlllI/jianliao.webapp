@@ -27,7 +27,8 @@
       "Bash(git commit -m '🔐 fix: Critical security and stability improvements:*)",
       "Bash(git commit -m '🔧 fix: Initialize failure - add safe checks for userInfo loading:*)",
       "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp add -A)",
-      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp commit -m \"fix: Initialize failure - add safe checks for userInfo loading\")"
+      "Bash(git -C /Volumes/disk4/GitHub/jianliao.webapp commit -m \"fix: Initialize failure - add safe checks for userInfo loading\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({version:p.version,electronVer:p.devDependencies?.electron,pluginVer:p.devDependencies?.['vue-cli-plugin-electron-builder']},null,2\\)\\)\")"
     ]
   }
 }
