@@ -84,8 +84,8 @@ async function createWindow() {
   const windowConfig = {
     width: 410,
     height: 510,
-    minWidth: 360,
-    minHeight: 440,
+    minWidth: 0,    // 移除最小宽度限制
+    minHeight: 0,   // 移除最小高度限制
     frame: false,
     webPreferences: {
       nodeIntegration: false,
@@ -101,6 +101,10 @@ async function createWindow() {
   }
 
   win = new BrowserWindow(windowConfig)
+
+  // 初始化后也确保没有任何限制
+  win.setMinimumSize(0, 0)
+  win.setMaximumSize(0, 0)
 
   // 当页面加载完成时，注入diagnostics
   win.webContents.on('dom-ready', () => {
@@ -134,68 +138,82 @@ async function createWindow() {
 
   // 帮助函数：调整窗口大小
   const adjustWindowSize = (hash) => {
-    // 防止过于频繁的调用
     if (!win || win.isDestroyed()) return
 
     try {
       const display = screen.getDisplayMatching(win.getBounds())
       const { width: sw, height: sh } = display.workAreaSize
       const margin = 60
+      const screenCenterX = display.bounds.x + sw / 2
+      const screenCenterY = display.bounds.y + sh / 2
 
-      let minW, minH, w, h, resizable = true
+      let w, h
 
       if (/home/.test(hash)) {
-        minW = 800
-        minH = 600
         const recommendW = Math.round((sw - margin) * 0.75)
         const recommendH = Math.round((sh - margin) * 0.75)
-        w = Math.max(minW, Math.min(1200, recommendW))
-        h = Math.max(minH, Math.min(850, recommendH))
-        resizable = true
+        w = Math.max(800, recommendW)
+        h = Math.max(600, recommendH)
       } else if (/login/.test(hash)) {
-        minW = 360
-        minH = 440
-        w = Math.min(450, sw - margin)
-        h = Math.min(550, sh - margin)
-        resizable = true
+        w = 450
+        h = 550
       } else if (/register/.test(hash)) {
-        minW = 380
-        minH = 650
-        w = Math.min(480, sw - margin)
-        h = Math.min(750, sh - margin)
-        resizable = true
+        w = 480
+        h = 750
       } else if (/password|reset/.test(hash)) {
-        minW = 380
-        minH = 500
-        w = Math.min(750, sw - margin)
-        h = Math.min(650, sh - margin)
-        resizable = true
+        w = 750
+        h = 650
       } else {
         return
       }
 
-      // 关键：临时移除最大尺寸限制，允许窗口缩小
-      win.setMaximumSize(65535, 65535) // 设置为极大值，实际上等于无限制
+      if (isDevelopment) {
+        console.log(`[Main] 📍 Adjusting to ${hash}: ${w}x${h}`)
+      }
 
-      // 按正确顺序调用API
-      win.setMinimumSize(minW, minH)
-      win.setResizable(resizable)
-      win.setMaximizable(/home/.test(hash)) // 只有主页可以最大化
+      // 强制移除所有限制
+      win.setMinimumSize(0, 0)
+      win.setMaximumSize(10000, 10000)
+      win.setResizable(true)
 
-      // 使用setTimeout确保setSize生效
+      // ⚠️ 关键修复：如果窗口是最大化状态，必须先还原
+      // 当窗口被拖动到很大时，可能会进入最大化状态
+      // 在这种状态下，setBounds() 无法正常缩小窗口
+      if (win.isMaximized()) {
+        if (isDevelopment) {
+          console.log('[Main] ℹ️ Window is maximized, calling unmaximize() first')
+        }
+        win.unmaximize()
+      }
+
+      // 计算居中位置
+      const x = Math.round(screenCenterX - w / 2)
+      const y = Math.round(screenCenterY - h / 2)
+
+      // 稍微延迟以确保 unmaximize() 生效，然后调用多次 setBounds
       setTimeout(() => {
-        if (win && !win.isDestroyed()) {
-          // 先调用setSize
-          win.setSize(w, h)
-          // 再center窗口
-          win.center()
-
-          if (isDevelopment) {
-            const bounds = win.getBounds()
-            console.log(`[Main] ✓ Window resized to ${hash}: ${bounds.width}x${bounds.height}`)
-          }
+        if (!win || win.isDestroyed()) return
+        for (let i = 0; i < 3; i++) {
+          win.setBounds({ x, y, width: w, height: h })
         }
       }, 50)
+
+      // 在renderer中显示调整反馈
+      win.webContents.executeJavaScript(`
+        document.title = 'jianliao (${w}x${h})';
+        if (window.__resizeCount === undefined) window.__resizeCount = 0;
+        window.__resizeCount++;
+        console.log('[Renderer] Window resize #' + window.__resizeCount + ': ${w}x${h}');
+      `).catch(err => {})
+
+      if (isDevelopment) {
+        setTimeout(() => {
+          if (win && !win.isDestroyed()) {
+            const finalBounds = win.getBounds()
+            console.log(`[Main] ✓ Final size: ${finalBounds.width}x${finalBounds.height}`)
+          }
+        }, 100)
+      }
     } catch (error) {
       console.error('[Main] Error adjusting window size:', error.message)
     }
@@ -411,7 +429,7 @@ function initIpcMainEvent() {
     stopBlink();
   })
 
-  // 诊断命令
+  // 诊断和调试命令
   ipcMain.on('diagnostic', (event, data) => {
     console.log('[Main] Diagnostic request:', data)
     const diagnostic = {
@@ -424,6 +442,20 @@ function initIpcMainEvent() {
     }
     console.log('[Main] Diagnostic info:', diagnostic)
     event.reply('diagnostic-reply', diagnostic)
+  })
+
+  // 测试窗口调整大小
+  ipcMain.on('testResize', (event, size) => {
+    console.log('[Main] Test resize request:', size)
+    if (win && !win.isDestroyed()) {
+      const { width, height } = size
+      console.log(`[Main] Resizing window to ${width}x${height}`)
+      win.setBounds({ x: win.getBounds().x, y: win.getBounds().y, width, height })
+      setTimeout(() => {
+        const bounds = win.getBounds()
+        console.log(`[Main] Window is now ${bounds.width}x${bounds.height}`)
+      }, 200)
+    }
   })
 }
 
