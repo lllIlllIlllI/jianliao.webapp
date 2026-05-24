@@ -44,3 +44,6 @@ release/
 # Cache
 .cache/
 .eslintcache
+
+# Claude AI Development
+.claude/
