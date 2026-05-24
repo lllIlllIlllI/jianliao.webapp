@@ -1,6 +1,40 @@
 @charset "UTF-8";
 @import "element";
 
+// Windows 特定修复：确保透明窗口中内容完全填充并渲染为白色
+* {
+  box-sizing: border-box !important;
+}
+
+html {
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: white !important;
+  overflow: hidden !important;
+}
+
+body {
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: white !important;
+  overflow: hidden !important;
+}
+
+#app {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+}
+
 // im全局样式变量
 :root {
   // 主色
@@ -47,23 +81,6 @@
   --im-background: white;
   --im-background-active: #f4f4fc;
   --im-background-active-dark: var(--im-color-primary-light-9);
-}
-
-html {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: white;
 }
 
 section {

@@ -730,7 +730,7 @@ export default {
 	align-items: center;
 	border-radius: 4px;
 	overflow: hidden;
-	background: var(--im-color-primary-light-9);
+	background: white;  // 改为白色以匹配窗口背景
 
 	.app-container {
 		width: 62vw;

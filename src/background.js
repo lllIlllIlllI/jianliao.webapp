@@ -4,6 +4,7 @@ import { app, protocol, BrowserWindow, Menu, Tray, ipcMain, globalShortcut, scre
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 
 const path = require('path');
+const os = require('os');
 const { nativeImage } = require('electron');
 const fs = require('fs');
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -81,19 +82,24 @@ async function createWindow() {
   }
 
   // 创建窗口（初始尺寸与登录页一致，避免启动时闪烁）
+  // 在 Windows 上，使用透明窗口 + 白色内容背景是隐藏系统边框的最可靠方法
   const windowConfig = {
     width: 410,
     height: 510,
     minWidth: 0,    // 移除最小宽度限制
     minHeight: 0,   // 移除最小高度限制
     frame: false,
-    backgroundColor: '#ffffff',  // 设置窗体背景色为白色，避免灰色边框
+    transparent: true,  // Windows: 透明窗口以避免系统边框
+    backgroundColor: '#00000000',  // 完全透明，让 CSS 处理背景
+    hasShadow: false,  // 禁用窗体阴影
+    show: false,  // 不立即显示，等待DOM准备好
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: preloadPath,
       webSecurity: false,
-      devTools: true
+      devTools: true,
+      enableBlinkFeatures: 'CSSBackdropFilter'  // 允许 CSS backdrop-filter
     }
   }
 
@@ -107,7 +113,18 @@ async function createWindow() {
   win.setMinimumSize(0, 0)
   win.setMaximumSize(10000, 10000)
 
-  // 当页面加载完成时，注入diagnostics
+  // Windows 特定：禁用窗体边框和额外装饰
+  if (os.platform() === 'win32') {
+    try {
+      // 在 Windows 上，某些版本可能需要额外的配置来完全隐藏边框
+      win.setAutoHideMenuBar(true);
+      console.log('[Main] ✓ Windows-specific border hiding applied');
+    } catch (error) {
+      console.warn('[Main] Could not apply Windows border fix:', error.message);
+    }
+  }
+
+  // 当页面加载完成时，注入diagnostics并显示窗口
   win.webContents.on('dom-ready', () => {
     console.log('[Main] DOM ready, checking electronAPI...')
 
@@ -129,12 +146,27 @@ async function createWindow() {
       `).catch(err => {
         console.error('[Main] Error executing diagnostic script:', err)
       })
+
+      // 显示窗口（在DOM准备好后显示，避免白屏闪烁和边框问题）
+      if (win && !win.isDestroyed()) {
+        win.show();
+        console.log('[Main] ✓ Window shown after DOM ready');
+      }
     }, 500)
   })
 
   // 窗口获得焦点时停止闪烁
   win.on('focus', () => {
     stopBlink();
+  })
+
+  // 窗口准备好显示时的事件（备用显示方案）
+  win.once('ready-to-show', () => {
+    console.log('[Main] ready-to-show event fired');
+    if (win && !win.isDestroyed() && !win.isVisible()) {
+      win.show();
+      console.log('[Main] ✓ Window shown via ready-to-show');
+    }
   })
 
   // 帮助函数：调整窗口大小
@@ -194,7 +226,11 @@ async function createWindow() {
       // 稍微延迟以确保 unmaximize() 生效，然后调用多次 setBounds
       setTimeout(() => {
         if (!win || win.isDestroyed()) return
-        for (let i = 0; i < 3; i++) {
+        // 对于透明窗口，需要先设置大小再设置位置
+        win.setSize(w, h)
+        win.setPosition(x, y)
+        // 额外调用以确保生效
+        for (let i = 0; i < 2; i++) {
           win.setBounds({ x, y, width: w, height: h })
         }
       }, 50)
@@ -347,7 +383,9 @@ function createTray() {
 function initIpcMainEvent() {
   // 获取全屏状态
   ipcMain.handle('isFullScreen', () => {
-    return win.isFullScreen()
+    // 在Electron中，应用内容应该默认占满整个窗口（应用级全屏，不是系统全屏）
+    // 返回true表示应用容器应该占满窗口
+    return true
   })
   // 是否获得焦点
   ipcMain.handle('isFocused', () => {
