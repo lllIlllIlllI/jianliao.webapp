@@ -104,7 +104,7 @@ async function createWindow() {
 
   // 初始化后也确保没有任何限制
   win.setMinimumSize(0, 0)
-  win.setMaximumSize(0, 0)
+  win.setMaximumSize(10000, 10000)
 
   // 当页面加载完成时，注入diagnostics
   win.webContents.on('dom-ready', () => {
