@@ -12,29 +12,36 @@ let win
 let tray
 
 // 获取logo文件路径（支持开发和生产环境）
-let appLogo
-try {
-  // 尝试从 __static 获取（生产环境）
-  if (typeof __static !== 'undefined') {
-    appLogo = path.join(__static, 'logo.ico')
-  } else {
-    // 开发环境：从项目public目录获取
-    appLogo = path.join(app.getAppPath(), '../public/logo.ico')
-    if (!fs.existsSync(appLogo)) {
-      // 备用方案
-      appLogo = path.join(process.cwd(), 'public/logo.ico')
+// 企业级方案：尝试多个位置，有完整的错误处理和日志
+function getAppLogo() {
+  const logoFilename = 'logo.ico'
+  const candidatePaths = [
+    // 生产环境
+    ...(typeof __static !== 'undefined' ? [path.join(__static, logoFilename)] : []),
+    // 开发环境 - 相对于app.getAppPath()
+    path.join(app.getAppPath(), '../public', logoFilename),
+    // 开发环境 - 相对于进程目录
+    path.join(process.cwd(), 'public', logoFilename),
+    // 相对于dist_electron
+    path.join(app.getAppPath(), 'public', logoFilename),
+  ]
+
+  for (const logoPath of candidatePaths) {
+    try {
+      if (fs.existsSync(logoPath)) {
+        console.log('[Main] ✓ App logo found at:', logoPath)
+        return logoPath
+      }
+    } catch (error) {
+      console.debug('[Main] Checking path failed:', logoPath, error.message)
     }
   }
-  if (!fs.existsSync(appLogo)) {
-    console.warn('[Main] Logo not found at:', appLogo, '- using default')
-    appLogo = null
-  }
-} catch (error) {
-  console.warn('[Main] Error getting logo path:', error.message)
-  appLogo = null
+
+  console.warn('[Main] ⚠️ App logo not found in any candidate paths')
+  return null
 }
 
-console.log('[Main] App logo path:', appLogo)
+let appLogo = getAppLogo()
 
 let blinkTimer = null; // 闪烁定时器
 let isBlinking = false; // 是否正在闪烁
@@ -97,8 +104,8 @@ async function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: preloadPath,
-      webSecurity: false,
-      devTools: true,
+      webSecurity: !isDevelopment,  // 生产环境启用安全性
+      devTools: isDevelopment,  // 仅开发环境打开devTools
       enableBlinkFeatures: 'CSSBackdropFilter'  // 允许 CSS backdrop-filter
     }
   }
@@ -169,7 +176,62 @@ async function createWindow() {
     }
   })
 
-  // 帮助函数：调整窗口大小
+  // 防抖定时器：防止频繁调整窗口大小导致WebSocket断连
+  let resizeDebounceTimer = null
+  const RESIZE_DEBOUNCE_MS = 300
+  let lastRoute = '' // 跟踪上一个路由
+  let shouldAutoResize = true // 是否应该自动调整大小
+
+  // 帮助函数：调整窗口大小（防抖版本）
+  const adjustWindowSizeDebounced = (hash) => {
+    // 企业级方案：只在特定路由转换时自动调整窗口大小
+    // 场景1: 初始化 → 登录/注册 → 需要调整
+    // 场景2: 登录 → 首页 → 需要调整
+    // 场景3: 首页内部导航（点击左侧菜单）→ 不需要调整，保持用户调整的大小
+
+    const isLoginRoute = /login|register|password|reset/.test(hash)
+    const isHomeRoute = /home/.test(hash)
+    const wasLoginRoute = /login|register|password|reset/.test(lastRoute)
+    const wasHomeRoute = /home/.test(lastRoute)
+
+    // 决定是否调整窗口
+    let shouldResize = false
+
+    if (!lastRoute) {
+      // 初始化：应该调整
+      shouldResize = true
+    } else if (wasLoginRoute && isHomeRoute) {
+      // 从登录/注册到首页：应该调整
+      shouldResize = true
+    } else if (isLoginRoute && !wasLoginRoute) {
+      // 进入登录/注册页面：应该调整
+      shouldResize = true
+    } else if (wasHomeRoute && isHomeRoute) {
+      // 在首页内部导航（点击左侧菜单）：不调整，保持用户调整的大小
+      shouldResize = false
+    }
+
+    lastRoute = hash
+
+    if (!shouldResize) {
+      if (isDevelopment) {
+        console.log(`[Main] ℹ️ Home internal navigation (${hash}): keeping current size`)
+      }
+      return
+    }
+
+    // 清除之前的定时器
+    if (resizeDebounceTimer) {
+      clearTimeout(resizeDebounceTimer)
+    }
+    // 设置新的防抖定时器
+    resizeDebounceTimer = setTimeout(() => {
+      adjustWindowSize(hash)
+      resizeDebounceTimer = null
+    }, RESIZE_DEBOUNCE_MS)
+  }
+
+  // 帮助函数：调整窗口大小（原始实现）
   const adjustWindowSize = (hash) => {
     if (!win || win.isDestroyed()) return
 
@@ -256,18 +318,18 @@ async function createWindow() {
     }
   }
 
-  // 监听路由变化，在主进程直接调整窗口大小
+  // 监听路由变化，在主进程直接调整窗口大小（使用防抖防止频繁调整）
   win.webContents.on('did-navigate-in-page', (event, url, isMainFrame) => {
     if (!isMainFrame) return
     const hash = (url.split('#')[1] || '').replace(/\?.*$/, '')
     if (isDevelopment) console.log('[Main] Route changed to:', hash)
-    adjustWindowSize(hash)
+    adjustWindowSizeDebounced(hash)
   })
 
-  // 备用方案：通过IPC从渲染进程接收路由变化（开发环境可能需要）
+  // 备用方案：通过IPC从渲染进程接收路由变化（开发环境可能需要，同样使用防抖）
   ipcMain.on('routeChange', (event, hash) => {
     if (isDevelopment) console.log('[Main] Route changed via IPC:', hash)
-    adjustWindowSize(hash)
+    adjustWindowSizeDebounced(hash)
   })
 
   // 禁用顶部菜单
@@ -291,21 +353,41 @@ function startBlink() {
   }
   isBlinking = true;
   blinkIconVisible = true;
+
+  let trayImage = null
+  try {
+    // 预加载托盘图标，以提高闪烁性能
+    if (appLogo && typeof appLogo === 'string') {
+      trayImage = nativeImage.createFromPath(appLogo)
+      if (trayImage.isEmpty()) {
+        console.warn('[Main] Tray image is empty, blinking will show empty icon only')
+        trayImage = null
+      }
+    }
+  } catch (error) {
+    console.error('[Main] Error loading tray image for blinking:', error.message)
+    trayImage = null
+  }
+
   try {
     tray.setToolTip('您有新的未读消息');
-    // 每 500ms闪烁一次图标事
+    // 每 500ms闪烁一次图标
     blinkTimer = setInterval(() => {
       if (!tray) return;
-      if (blinkIconVisible) {
-        // 显示空白图标（隐藏效果）
-        tray.setImage(nativeImage.createEmpty());
-        blinkIconVisible = false;
-      } else {
-        // 显示正常图标
-        if (appLogo) {
-          tray.setImage(appLogo);
+      try {
+        if (blinkIconVisible) {
+          // 显示空白图标（隐藏效果）
+          tray.setImage(nativeImage.createEmpty());
+          blinkIconVisible = false;
+        } else {
+          // 显示正常图标
+          if (trayImage && !trayImage.isEmpty()) {
+            tray.setImage(trayImage);
+          }
+          blinkIconVisible = true;
         }
-        blinkIconVisible = true;
+      } catch (innerError) {
+        console.error('[Main] Error updating tray image during blink:', innerError.message)
       }
     }, 500);
   } catch (error) {
@@ -326,10 +408,17 @@ function stopBlink() {
   }
   try {
     // 恢复正常图标
-    if (appLogo) {
-      tray.setImage(appLogo);
+    if (appLogo && typeof appLogo === 'string') {
+      try {
+        const trayImage = nativeImage.createFromPath(appLogo)
+        if (!trayImage.isEmpty()) {
+          tray.setImage(trayImage);
+        }
+      } catch (iconError) {
+        console.error('[Main] Error restoring tray icon:', iconError.message)
+      }
     }
-    tray.setToolTip(defaultTooltip);
+    tray.setToolTip(defaultTooltip || 'jianliao');
     blinkIconVisible = true;
   } catch (error) {
     console.error('[Main] Error in stopBlink:', error)
@@ -344,8 +433,17 @@ function createTray() {
       return
     }
 
-    tray = new Tray(appLogo)
-    defaultTooltip = process.env.VUE_APP_NAME
+    // 使用 nativeImage.createFromPath 确保 Windows 上正确处理图标
+    // 这比直接传递路径字符串更可靠
+    const trayIcon = nativeImage.createFromPath(appLogo)
+    if (trayIcon.isEmpty()) {
+      console.warn('[Main] Cannot create tray: logo image is empty at -', appLogo)
+      tray = null
+      return
+    }
+
+    tray = new Tray(trayIcon)
+    defaultTooltip = process.env.VUE_APP_NAME || 'jianliao'
 
     const contextMenu = Menu.buildFromTemplate([
       {
@@ -383,117 +481,323 @@ function createTray() {
 function initIpcMainEvent() {
   // 获取全屏状态
   ipcMain.handle('isFullScreen', () => {
-    // 在Electron中，应用内容应该默认占满整个窗口（应用级全屏，不是系统全屏）
-    // 返回true表示应用容器应该占满窗口
-    return true
+    try {
+      // 在Electron中，应用内容应该默认占满整个窗口（应用级全屏，不是系统全屏）
+      // 返回true表示应用容器应该占满窗口
+      return true
+    } catch (error) {
+      console.error('[Main] Error in isFullScreen handler:', error.message)
+      return true
+    }
   })
+
   // 是否获得焦点
   ipcMain.handle('isFocused', () => {
-    return win.isFocused()
+    try {
+      if (win && !win.isDestroyed()) {
+        return win.isFocused()
+      }
+      return false
+    } catch (error) {
+      console.error('[Main] Error in isFocused handler:', error.message)
+      return false
+    }
   })
   // 用户点击页面的截屏按钮触发截屏
   ipcMain.handle('screenshot', () => {
     return new Promise((resolve, reject) => {
       if (!Screenshots) {
-        console.warn('[Main] Screenshots module not available')
-        resolve()
+        console.warn('[Main] Screenshots module not available, screenshot feature disabled')
+        resolve(null)
         return
       }
       try {
         const screenshots = new Screenshots();
+        const timeout = setTimeout(() => {
+          console.warn('[Main] Screenshot operation timed out')
+          resolve(null)
+        }, 30000) // 30秒超时
+
         screenshots.startCapture();
         screenshots.on("ok", (e, buffer, bounds) => {
-          resolve(buffer, bounds)
+          clearTimeout(timeout)
+          if (isDevelopment) {
+            console.log('[Main] ✓ Screenshot captured successfully')
+          }
+          resolve({ buffer, bounds })
         });
         screenshots.on("cancel", (e) => {
-          resolve()
+          clearTimeout(timeout)
+          if (isDevelopment) {
+            console.log('[Main] Screenshot operation cancelled by user')
+          }
+          resolve(null)
+        });
+        screenshots.on("error", (error) => {
+          clearTimeout(timeout)
+          console.error('[Main] Screenshot error:', error)
+          resolve(null)
         });
       } catch (error) {
-        console.error('[Main] Screenshot error:', error)
-        resolve()
+        console.error('[Main] Failed to start screenshot:', error.message)
+        resolve(null)
       }
     })
   })
 
   ipcMain.on('show', () => {
-    win.show()
+    try {
+      if (win && !win.isDestroyed()) {
+        win.show()
+        if (isDevelopment) console.log('[Main] Window shown via IPC')
+      }
+    } catch (error) {
+      console.error('[Main] Error showing window:', error.message)
+    }
   })
 
   ipcMain.on('minimize', () => {
-    win.minimize()
+    try {
+      if (win && !win.isDestroyed()) {
+        win.minimize()
+        if (isDevelopment) console.log('[Main] Window minimized via IPC')
+      }
+    } catch (error) {
+      console.error('[Main] Error minimizing window:', error.message)
+    }
   })
 
   ipcMain.on('maximize', () => {
-    win.maximize()
+    try {
+      if (!win || win.isDestroyed()) {
+        console.warn('[Main] Cannot maximize: window is destroyed')
+        return
+      }
+
+      // 企业级方案：稳定的最大化实现
+      // 问题：直接调用 win.maximize() 在某些场景下大小不稳定
+      // 解决方案：使用 setBounds 设置到完整的工作区大小
+
+      if (win.isMaximized()) {
+        // 已经最大化，忽略
+        if (isDevelopment) console.log('[Main] Window already maximized')
+        return
+      }
+
+      // 获取当前显示器信息
+      const display = screen.getDisplayMatching(win.getBounds())
+      const { x, y, width, height } = display.workAreaSize
+
+      // 使用工作区大小设置窗口（比 maximize() 更稳定）
+      const workArea = display.workArea
+      win.setBounds({
+        x: workArea.x,
+        y: workArea.y,
+        width: workArea.width,
+        height: workArea.height
+      })
+
+      if (isDevelopment) {
+        console.log(`[Main] ✓ Window maximized via setBounds: ${workArea.width}x${workArea.height}`)
+      }
+    } catch (error) {
+      console.error('[Main] Error maximizing window:', error.message)
+    }
   })
 
   ipcMain.on('unmaximize', () => {
-    win.unmaximize()
+    try {
+      if (!win || win.isDestroyed()) {
+        console.warn('[Main] Cannot unmaximize: window is destroyed')
+        return
+      }
+
+      // 检查当前状态
+      if (!win.isMaximized()) {
+        if (isDevelopment) console.log('[Main] Window is not maximized')
+        return
+      }
+
+      // 恢复到之前的大小（如果记录了的话）
+      // 否则使用智能默认大小
+      const currentHash = lastRoute || 'home'
+
+      // 计算合理的恢复大小
+      const display = screen.getDisplayMatching(win.getBounds())
+      const { width: sw, height: sh } = display.workAreaSize
+
+      let w, h
+      if (/home/.test(currentHash)) {
+        w = Math.round((sw - 60) * 0.75)
+        h = Math.round((sh - 60) * 0.75)
+        w = Math.max(800, w)
+        h = Math.max(600, h)
+      } else {
+        // 默认大小
+        w = Math.round(sw * 0.6)
+        h = Math.round(sh * 0.6)
+      }
+
+      // 计算居中位置
+      const screenCenterX = display.bounds.x + sw / 2
+      const screenCenterY = display.bounds.y + sh / 2
+      const x = Math.round(screenCenterX - w / 2)
+      const y = Math.round(screenCenterY - h / 2)
+
+      // 设置恢复大小
+      win.setBounds({
+        x,
+        y,
+        width: w,
+        height: h
+      })
+
+      if (isDevelopment) {
+        console.log(`[Main] ✓ Window unmaximized: ${w}x${h} at (${x}, ${y})`)
+      }
+    } catch (error) {
+      console.error('[Main] Error unmaximizing window:', error.message)
+    }
   })
 
   ipcMain.on('close', () => {
-    win.hide()
+    try {
+      if (win && !win.isDestroyed()) {
+        win.hide()
+        if (isDevelopment) console.log('[Main] Window hidden via IPC')
+      }
+    } catch (error) {
+      console.error('[Main] Error hiding window:', error.message)
+    }
   })
 
   ipcMain.on('resize', (event, v) => {
-    // 获取当前窗口所在显示器的工作区（排除任务栏），防止窗口超出屏幕
-    const display = screen.getDisplayMatching(win.getBounds())
-    const { width: sw, height: sh } = display.workAreaSize
-    const margin = 40 // 与屏幕边缘保留安全距离
-    const w = Math.min(v.width, sw - margin)
-    const h = Math.min(v.height, sh - margin)
-    win.setMinimumSize(
-      Math.min(v.minWidth || v.width, sw - margin),
-      Math.min(v.minHeight || v.height, sh - margin)
-    )
-    win.setSize(w, h)
-    win.setMaximizable(!!v.maximizable)
-    win.center()
+    try {
+      if (!win || win.isDestroyed()) {
+        console.warn('[Main] Cannot resize: window is destroyed')
+        return
+      }
+
+      // 验证输入参数
+      if (!v || typeof v.width !== 'number' || typeof v.height !== 'number') {
+        console.warn('[Main] Invalid resize parameters:', v)
+        return
+      }
+
+      // 获取当前窗口所在显示器的工作区（排除任务栏），防止窗口超出屏幕
+      const display = screen.getDisplayMatching(win.getBounds())
+      const { width: sw, height: sh } = display.workAreaSize
+      const margin = 40 // 与屏幕边缘保留安全距离
+      const w = Math.min(Math.max(v.width, 300), sw - margin) // 最小宽度300px
+      const h = Math.min(Math.max(v.height, 300), sh - margin) // 最小高度300px
+
+      win.setMinimumSize(
+        Math.min(v.minWidth || 300, sw - margin),
+        Math.min(v.minHeight || 300, sh - margin)
+      )
+      win.setSize(w, h)
+      win.setMaximizable(!!v.maximizable)
+      win.center()
+
+      if (isDevelopment) {
+        console.log(`[Main] Window resized via IPC: ${w}x${h}`)
+      }
+    } catch (error) {
+      console.error('[Main] Error resizing window:', error.message)
+    }
   })
 
   ipcMain.on('center', () => {
-    win.center();
+    try {
+      if (win && !win.isDestroyed()) {
+        win.center()
+        if (isDevelopment) console.log('[Main] Window centered via IPC')
+      }
+    } catch (error) {
+      console.error('[Main] Error centering window:', error.message)
+    }
   })
 
   // 开始托盘图标闪烁
   ipcMain.on('startTrayBlink', () => {
-    // 只有在窗口不在焦点时才闪烁
-    if (!win.isFocused()) {
-      startBlink();
+    try {
+      // 只有在窗口不在焦点时才闪烁
+      if (win && !win.isDestroyed() && !win.isFocused()) {
+        startBlink()
+        if (isDevelopment) console.log('[Main] Tray blink started')
+      }
+    } catch (error) {
+      console.error('[Main] Error starting tray blink:', error.message)
     }
   })
 
   // 停止托盘图标闪烁
   ipcMain.on('stopTrayBlink', () => {
-    stopBlink();
+    try {
+      stopBlink()
+      if (isDevelopment) console.log('[Main] Tray blink stopped')
+    } catch (error) {
+      console.error('[Main] Error stopping tray blink:', error.message)
+    }
   })
 
   // 诊断和调试命令
   ipcMain.on('diagnostic', (event, data) => {
-    console.log('[Main] Diagnostic request:', data)
-    const diagnostic = {
-      preloadPath: preloadPath,
-      preloadExists: preloadExists,
-      isDevelopment: isDevelopment,
-      appIsPackaged: app.isPackaged,
-      appPath: app.getAppPath(),
-      resourcesPath: process.resourcesPath
+    try {
+      if (isDevelopment) {
+        console.log('[Main] Diagnostic request:', data)
+      }
+      const diagnostic = {
+        preloadPath,
+        preloadExists,
+        isDevelopment,
+        appIsPackaged: app.isPackaged,
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        platform: process.platform,
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron,
+        windowState: {
+          isDestroyed: win ? win.isDestroyed() : true,
+          isFocused: win && !win.isDestroyed() ? win.isFocused() : false,
+          isVisible: win && !win.isDestroyed() ? win.isVisible() : false,
+          bounds: win && !win.isDestroyed() ? win.getBounds() : null
+        }
+      }
+      if (isDevelopment) {
+        console.log('[Main] Diagnostic info:', diagnostic)
+      }
+      event.reply('diagnostic-reply', diagnostic)
+    } catch (error) {
+      console.error('[Main] Error in diagnostic handler:', error.message)
+      event.reply('diagnostic-reply', { error: error.message })
     }
-    console.log('[Main] Diagnostic info:', diagnostic)
-    event.reply('diagnostic-reply', diagnostic)
   })
 
   // 测试窗口调整大小
   ipcMain.on('testResize', (event, size) => {
-    console.log('[Main] Test resize request:', size)
-    if (win && !win.isDestroyed()) {
-      const { width, height } = size
-      console.log(`[Main] Resizing window to ${width}x${height}`)
-      win.setBounds({ x: win.getBounds().x, y: win.getBounds().y, width, height })
-      setTimeout(() => {
-        const bounds = win.getBounds()
-        console.log(`[Main] Window is now ${bounds.width}x${bounds.height}`)
-      }, 200)
+    try {
+      if (!size || typeof size.width !== 'number' || typeof size.height !== 'number') {
+        console.warn('[Main] Invalid testResize parameters:', size)
+        return
+      }
+
+      console.log('[Main] Test resize request:', size)
+      if (win && !win.isDestroyed()) {
+        const { width, height } = size
+        const validWidth = Math.max(300, width)
+        const validHeight = Math.max(300, height)
+        console.log(`[Main] Resizing window to ${validWidth}x${validHeight}`)
+        win.setBounds({ x: win.getBounds().x, y: win.getBounds().y, width: validWidth, height: validHeight })
+        setTimeout(() => {
+          if (win && !win.isDestroyed()) {
+            const bounds = win.getBounds()
+            console.log(`[Main] Window is now ${bounds.width}x${bounds.height}`)
+          }
+        }, 200)
+      }
+    } catch (error) {
+      console.error('[Main] Error in testResize:', error.message)
     }
   })
 }
@@ -507,20 +811,40 @@ function initScreenshots() {
   try {
     // 快捷键截屏
     const screenshots = new Screenshots();
-    globalShortcut.register("ctrl+alt+a", () => {
-      if (!screenshots.$win || !screenshots.$win.isFocused) {
-        screenshots.startCapture();
-      }
-    })
 
-    // esc取消截屏
-    globalShortcut.register("esc", () => {
-      if (screenshots.$win && screenshots.$win.isFocused()) {
-        screenshots.endCapture();
-      }
-    })
+    // Ctrl+Alt+A 开始截屏
+    try {
+      globalShortcut.register("ctrl+alt+a", () => {
+        try {
+          if (!screenshots.$win || !screenshots.$win.isFocused) {
+            screenshots.startCapture();
+          }
+        } catch (error) {
+          console.error('[Main] Error starting screenshot capture:', error.message)
+        }
+      })
+      if (isDevelopment) console.log('[Main] ✓ Screenshot shortcut Ctrl+Alt+A registered')
+    } catch (error) {
+      console.error('[Main] Failed to register Ctrl+Alt+A shortcut:', error.message)
+    }
+
+    // Esc 取消截屏
+    try {
+      globalShortcut.register("esc", () => {
+        try {
+          if (screenshots.$win && screenshots.$win.isFocused()) {
+            screenshots.endCapture();
+          }
+        } catch (error) {
+          console.error('[Main] Error ending screenshot capture:', error.message)
+        }
+      })
+      if (isDevelopment) console.log('[Main] ✓ Screenshot shortcut Esc registered')
+    } catch (error) {
+      console.error('[Main] Failed to register Esc shortcut:', error.message)
+    }
   } catch (error) {
-    console.error('[Main] Failed to initialize screenshots:', error)
+    console.error('[Main] Failed to initialize screenshots:', error.message)
   }
 }
 
@@ -534,17 +858,45 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
+// 处理未捕获的异常
+process.on('uncaughtException', (error) => {
+  console.error('[Main] Uncaught Exception:', error)
+  if (isDevelopment) {
+    console.error('[Main] Stack trace:', error.stack)
+  }
+})
+
+// 处理未处理的 Promise 拒绝
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Main] Unhandled Rejection at:', promise, 'reason:', reason)
+  if (isDevelopment) {
+    console.error('[Main] Error details:', reason instanceof Error ? reason.stack : reason)
+  }
+})
+
 app.on('ready', async () => {
-  // 先初始化IPC处理器，确保handler在window加载完成前就已注册
-  initIpcMainEvent()
-  initScreenshots()
+  try {
+    // 先初始化IPC处理器，确保handler在window加载完成前就已注册
+    initIpcMainEvent()
+    initScreenshots()
 
-  // 然后创建window
-  await createWindow()
-  createTray()
+    // 然后创建window
+    await createWindow()
+    createTray()
 
-  // 修改通知栏标题
-  app.setAppUserModelId(process.env.VUE_APP_NAME)
+    // 修改通知栏标题
+    app.setAppUserModelId(process.env.VUE_APP_NAME || 'jianliao')
+
+    if (isDevelopment) {
+      console.log('[Main] ✓ Application initialized successfully')
+    }
+  } catch (error) {
+    console.error('[Main] ✗ Failed to initialize application:', error)
+    if (isDevelopment) {
+      console.error('[Main] Stack trace:', error.stack)
+    }
+    app.quit()
+  }
 })
 
 if (isDevelopment) {
